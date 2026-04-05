@@ -18,7 +18,7 @@ const META_TOKEN = process.env.META_SYSTEM_TOKEN;
 const META_VERSION = 'v21.0';
 const BASE = `https://graph.facebook.com/${META_VERSION}`;
 
-// Cache des Page Access Tokens (page_id → token)
+// Cache des Page Access Tokens (page_id â token)
 const PAGE_TOKEN_CACHE = {};
 
 // Appel API avec System User Token (ads, insights)
@@ -56,7 +56,7 @@ async function meta(path, method = 'GET', body = null, extraParams = {}) {
   return data;
 }
 
-// Récupère le Page Access Token pour un page_id donné (auto-échange via System User Token)
+// RÃ©cupÃ¨re le Page Access Token pour un page_id donnÃ© (auto-Ã©change via System User Token)
 async function getPageToken(page_id) {
   if (PAGE_TOKEN_CACHE[page_id]) return PAGE_TOKEN_CACHE[page_id];
   const url = new URL(`${BASE}/${page_id}`);
@@ -64,13 +64,13 @@ async function getPageToken(page_id) {
   url.searchParams.set('access_token', META_TOKEN);
   const res = await fetch(url.toString());
   const data = await res.json();
-  if (data.error) throw new Error(`Page token error: ${data.error.message}. Vérifiez que le System User est admin de la page.`);
-  if (!data.access_token) throw new Error(`Impossible d'obtenir le Page Access Token pour la page ${page_id}. Le System User doit être ajouté comme admin de la page Facebook.`);
+  if (data.error) throw new Error(`Page token error: ${data.error.message}. VÃ©rifiez que le System User est admin de la page.`);
+  if (!data.access_token) throw new Error(`Impossible d'obtenir le Page Access Token pour la page ${page_id}. Le System User doit Ãªtre ajoutÃ© comme admin de la page Facebook.`);
   PAGE_TOKEN_CACHE[page_id] = data.access_token;
   return data.access_token;
 }
 
-// Appel API avec Page Access Token (posts, photos, vidéos, insights de page)
+// Appel API avec Page Access Token (posts, photos, vidÃ©os, insights de page)
 async function metaPage(page_id, path, method = 'GET', body = null, extraParams = {}) {
   const token = await getPageToken(page_id);
   const url = new URL(`${BASE}${path}`);
@@ -107,9 +107,9 @@ async function metaPage(page_id, path, method = 'GET', body = null, extraParams 
 
 const TOOLS = [
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // BLOC 1 — LECTURE META ADS
-  // ══════════════════════════════════════════════════════════════════════════
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // BLOC 1 â LECTURE META ADS
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
   {
     name: 'list_ad_accounts',
@@ -144,7 +144,7 @@ const TOOLS = [
   },
   {
     name: 'list_ads',
-    description: 'Liste les publicités d\'un compte, campagne ou ad set.',
+    description: 'Liste les publicitÃ©s d\'un compte, campagne ou ad set.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -158,7 +158,7 @@ const TOOLS = [
   },
   {
     name: 'get_performance',
-    description: 'Métriques de performance : spend, CPM, CPC, CTR, leads, ROAS.',
+    description: 'MÃ©triques de performance : spend, CPM, CPC, CTR, leads, ROAS.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -187,7 +187,7 @@ const TOOLS = [
   },
   {
     name: 'list_custom_audiences',
-    description: 'Liste les audiences personnalisées d\'un compte.',
+    description: 'Liste les audiences personnalisÃ©es d\'un compte.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -199,12 +199,12 @@ const TOOLS = [
   },
   {
     name: 'get_pixel_health',
-    description: 'Vérifie l\'état du pixel Meta et ses événements récents.',
+    description: 'VÃ©rifie l\'Ã©tat du pixel Meta et ses Ã©vÃ©nements rÃ©cents.',
     inputSchema: { type: 'object', properties: { account_id: { type: 'string' } }, required: ['account_id'] }
   },
   {
     name: 'list_ad_creatives',
-    description: 'Liste les créatifs publicitaires d\'un compte.',
+    description: 'Liste les crÃ©atifs publicitaires d\'un compte.',
     inputSchema: {
       type: 'object',
       properties: { account_id: { type: 'string' }, limit: { type: 'number' } },
@@ -213,7 +213,7 @@ const TOOLS = [
   },
   {
     name: 'search_ad_images',
-    description: 'Recherche les images disponibles dans la bibliothèque du compte.',
+    description: 'Recherche les images disponibles dans la bibliothÃ¨que du compte.',
     inputSchema: {
       type: 'object',
       properties: { account_id: { type: 'string' }, name: { type: 'string' }, limit: { type: 'number' } },
@@ -222,7 +222,7 @@ const TOOLS = [
   },
   {
     name: 'search_ad_videos',
-    description: 'Recherche les vidéos disponibles dans la bibliothèque du compte.',
+    description: 'Recherche les vidÃ©os disponibles dans la bibliothÃ¨que du compte.',
     inputSchema: {
       type: 'object',
       properties: { account_id: { type: 'string' }, title: { type: 'string' }, limit: { type: 'number' } },
@@ -231,7 +231,7 @@ const TOOLS = [
   },
   {
     name: 'search_targeting',
-    description: 'Recherche des options de ciblage : intérêts, géolocalisation, comportements.',
+    description: 'Recherche des options de ciblage : intÃ©rÃªts, gÃ©olocalisation, comportements.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -244,7 +244,7 @@ const TOOLS = [
   },
   {
     name: 'estimate_audience_size',
-    description: 'Estime la taille d\'audience avant de créer un ad set.',
+    description: 'Estime la taille d\'audience avant de crÃ©er un ad set.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -257,7 +257,7 @@ const TOOLS = [
   },
   {
     name: 'preview_creative',
-    description: 'Génère un aperçu HTML d\'un créatif existant.',
+    description: 'GÃ©nÃ¨re un aperÃ§u HTML d\'un crÃ©atif existant.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -268,49 +268,49 @@ const TOOLS = [
     }
   },
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // BLOC 2 — CONTENUS FACEBOOK PAGE (AUTONOMIE CRÉATIFS)
-  // ══════════════════════════════════════════════════════════════════════════
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // BLOC 2 â CONTENUS FACEBOOK PAGE (AUTONOMIE CRÃATIFS)
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
   {
     name: 'list_page_posts',
-    description: 'Liste les posts récents d\'une page Facebook avec leurs IDs et métriques de base. Utilise les IDs pour créer des publicités via create_ad_from_post.',
+    description: 'Liste les posts rÃ©cents d\'une page Facebook avec leurs IDs et mÃ©triques de base. Utilise les IDs pour crÃ©er des publicitÃ©s via create_ad_from_post.',
     inputSchema: {
       type: 'object',
       properties: {
         page_id: { type: 'string', description: 'ID de la page Facebook' },
-        limit: { type: 'number', description: 'Nombre de posts. Défaut: 25' }
+        limit: { type: 'number', description: 'Nombre de posts. DÃ©faut: 25' }
       },
       required: ['page_id']
     }
   },
   {
     name: 'list_page_videos',
-    description: 'Liste les vidéos publiées sur une page Facebook. Idéal pour identifier des reels/vidéos performants à utiliser en pub.',
+    description: 'Liste les vidÃ©os publiÃ©es sur une page Facebook. IdÃ©al pour identifier des reels/vidÃ©os performants Ã  utiliser en pub.',
     inputSchema: {
       type: 'object',
       properties: {
         page_id: { type: 'string' },
-        limit: { type: 'number', description: 'Défaut: 20' }
+        limit: { type: 'number', description: 'DÃ©faut: 20' }
       },
       required: ['page_id']
     }
   },
   {
     name: 'list_page_photos',
-    description: 'Liste les photos publiées sur une page Facebook.',
+    description: 'Liste les photos publiÃ©es sur une page Facebook.',
     inputSchema: {
       type: 'object',
       properties: {
         page_id: { type: 'string' },
-        limit: { type: 'number', description: 'Défaut: 20' }
+        limit: { type: 'number', description: 'DÃ©faut: 20' }
       },
       required: ['page_id']
     }
   },
   {
     name: 'get_post_insights',
-    description: 'Récupère les métriques d\'un post Facebook spécifique : reach, impressions, engagement, clics, vues vidéo. Permet de sélectionner automatiquement les meilleurs posts pour les pubs.',
+    description: 'RÃ©cupÃ¨re les mÃ©triques d\'un post Facebook spÃ©cifique : reach, impressions, engagement, clics, vues vidÃ©o. Permet de sÃ©lectionner automatiquement les meilleurs posts pour les pubs.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -321,26 +321,26 @@ const TOOLS = [
   },
   {
     name: 'get_best_posts_for_ads',
-    description: 'Analyse automatiquement les N derniers posts d\'une page et retourne les meilleurs classés par engagement pour un objectif donné (réservation, notoriété, trafic). Outil clé pour l\'autonomie créative.',
+    description: 'Analyse automatiquement les N derniers posts d\'une page et retourne les meilleurs classÃ©s par engagement pour un objectif donnÃ© (rÃ©servation, notoriÃ©tÃ©, trafic). Outil clÃ© pour l\'autonomie crÃ©ative.',
     inputSchema: {
       type: 'object',
       properties: {
         page_id: { type: 'string', description: 'ID de la page Facebook' },
         objective: { type: 'string', enum: ['reservation', 'awareness', 'traffic', 'engagement'], description: 'Objectif publicitaire pour adapter le scoring' },
-        limit: { type: 'number', description: 'Nombre de posts à analyser. Défaut: 20' },
-        top_n: { type: 'number', description: 'Nombre de meilleurs posts à retourner. Défaut: 5' }
+        limit: { type: 'number', description: 'Nombre de posts Ã  analyser. DÃ©faut: 20' },
+        top_n: { type: 'number', description: 'Nombre de meilleurs posts Ã  retourner. DÃ©faut: 5' }
       },
       required: ['page_id', 'objective']
     }
   },
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // BLOC 3 — CONTENUS INSTAGRAM BUSINESS (AUTONOMIE CRÉATIFS IG)
-  // ══════════════════════════════════════════════════════════════════════════
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // BLOC 3 â CONTENUS INSTAGRAM BUSINESS (AUTONOMIE CRÃATIFS IG)
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
   {
     name: 'get_instagram_account',
-    description: 'Récupère l\'ID du compte Instagram Business lié à une page Facebook. Nécessaire pour accéder aux posts Instagram.',
+    description: 'RÃ©cupÃ¨re l\'ID du compte Instagram Business liÃ© Ã  une page Facebook. NÃ©cessaire pour accÃ©der aux posts Instagram.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -351,20 +351,20 @@ const TOOLS = [
   },
   {
     name: 'list_instagram_posts',
-    description: 'Liste les posts et reels récents du compte Instagram Business lié à la page. Inclut type de média, URL, légende, timestamp.',
+    description: 'Liste les posts et reels rÃ©cents du compte Instagram Business liÃ© Ã  la page. Inclut type de mÃ©dia, URL, lÃ©gende, timestamp.',
     inputSchema: {
       type: 'object',
       properties: {
         ig_user_id: { type: 'string', description: 'ID du compte Instagram Business (depuis get_instagram_account)' },
-        limit: { type: 'number', description: 'Nombre de posts. Défaut: 20' },
-        media_type: { type: 'string', enum: ['IMAGE', 'VIDEO', 'CAROUSEL_ALBUM', 'ALL'], description: 'Filtrer par type. Défaut: ALL' }
+        limit: { type: 'number', description: 'Nombre de posts. DÃ©faut: 20' },
+        media_type: { type: 'string', enum: ['IMAGE', 'VIDEO', 'CAROUSEL_ALBUM', 'ALL'], description: 'Filtrer par type. DÃ©faut: ALL' }
       },
       required: ['ig_user_id']
     }
   },
   {
     name: 'get_instagram_post_insights',
-    description: 'Métriques d\'un post Instagram : reach, impressions, engagement, vues vidéo, saves, shares. Pour sélectionner les meilleurs contenus IG à booster.',
+    description: 'MÃ©triques d\'un post Instagram : reach, impressions, engagement, vues vidÃ©o, saves, shares. Pour sÃ©lectionner les meilleurs contenus IG Ã  booster.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -375,26 +375,26 @@ const TOOLS = [
   },
   {
     name: 'get_best_instagram_posts_for_ads',
-    description: 'Analyse automatiquement les N derniers posts Instagram et retourne les meilleurs classés par performance pour un objectif donné.',
+    description: 'Analyse automatiquement les N derniers posts Instagram et retourne les meilleurs classÃ©s par performance pour un objectif donnÃ©.',
     inputSchema: {
       type: 'object',
       properties: {
         ig_user_id: { type: 'string', description: 'ID du compte Instagram Business' },
         objective: { type: 'string', enum: ['reservation', 'awareness', 'traffic', 'engagement'] },
-        limit: { type: 'number', description: 'Posts à analyser. Défaut: 20' },
-        top_n: { type: 'number', description: 'Meilleurs posts à retourner. Défaut: 5' }
+        limit: { type: 'number', description: 'Posts Ã  analyser. DÃ©faut: 20' },
+        top_n: { type: 'number', description: 'Meilleurs posts Ã  retourner. DÃ©faut: 5' }
       },
       required: ['ig_user_id', 'objective']
     }
   },
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // BLOC 4 — ÉCRITURE META ADS (CRÉATION COMPLÈTE)
-  // ══════════════════════════════════════════════════════════════════════════
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // BLOC 4 â ÃCRITURE META ADS (CRÃATION COMPLÃTE)
+  // ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
   {
     name: 'create_campaign',
-    description: 'Crée une nouvelle campagne Meta. Statut PAUSED par défaut.',
+    description: 'CrÃ©e une nouvelle campagne Meta. Statut PAUSED par dÃ©faut.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -402,7 +402,7 @@ const TOOLS = [
         name: { type: 'string' },
         objective: { type: 'string', enum: ['OUTCOME_AWARENESS', 'OUTCOME_TRAFFIC', 'OUTCOME_ENGAGEMENT', 'OUTCOME_LEADS', 'OUTCOME_APP_PROMOTION', 'OUTCOME_SALES'] },
         status: { type: 'string', enum: ['PAUSED', 'ACTIVE'] },
-        daily_budget: { type: 'number', description: 'En centimes (2000 = 20€)' },
+        daily_budget: { type: 'number', description: 'En centimes (2000 = 20â¬)' },
         lifetime_budget: { type: 'number' },
         special_ad_categories: { type: 'array', items: { type: 'string' } }
       },
@@ -411,16 +411,17 @@ const TOOLS = [
   },
   {
     name: 'create_adset',
-    description: 'Crée un ad set dans une campagne avec ciblage, budget et optimisation.',
+    description: 'CrÃ©e un ad set dans une campagne avec ciblage, budget et optimisation.',
     inputSchema: {
       type: 'object',
       properties: {
         account_id: { type: 'string' },
         campaign_id: { type: 'string' },
         name: { type: 'string' },
-        daily_budget: { type: 'number', description: 'En centimes (2000 = 20€)' },
+        daily_budget: { type: 'number', description: 'En centimes (2000 = 20â¬)' },
         targeting: { type: 'object', description: 'Spec de ciblage Meta (geo_locations, age_min, age_max, interests...)' },
         optimization_goal: { type: 'string', enum: ['OFFSITE_CONVERSIONS', 'LEAD_GENERATION', 'LINK_CLICKS', 'REACH', 'IMPRESSIONS', 'LANDING_PAGE_VIEWS', 'POST_ENGAGEMENT', 'PROFILE_VISIT'] },
+        destination_type: { type: 'string', enum: ['WEBSITE', 'FACEBOOK', 'INSTAGRAM', 'MESSENGER', 'APP', 'ON_AD'], description: 'Requis Meta API v17+. Default: FACEBOOK' },
         billing_event: { type: 'string', enum: ['IMPRESSIONS', 'LINK_CLICKS', 'THRUPLAY'] },
         bid_strategy: { type: 'string', enum: ['LOWEST_COST_WITHOUT_CAP', 'LOWEST_COST_WITH_BID_CAP', 'COST_CAP'] },
         status: { type: 'string', enum: ['PAUSED', 'ACTIVE'] },
@@ -432,13 +433,13 @@ const TOOLS = [
   },
   {
     name: 'create_ad_creative',
-    description: 'Crée un créatif pub. Mode 1: post existant via object_story_id. Mode 2: nouveau créatif image/vidéo + texte.',
+    description: 'CrÃ©e un crÃ©atif pub. Mode 1: post existant via object_story_id. Mode 2: nouveau crÃ©atif image/vidÃ©o + texte.',
     inputSchema: {
       type: 'object',
       properties: {
         account_id: { type: 'string' },
         name: { type: 'string' },
-        object_story_id: { type: 'string', description: 'Mode post existant. Format: {page_id}_{post_id}. Récupéré via list_page_posts ou get_best_posts_for_ads.' },
+        object_story_id: { type: 'string', description: 'Mode post existant. Format: {page_id}_{post_id}. RÃ©cupÃ©rÃ© via list_page_posts ou get_best_posts_for_ads.' },
         page_id: { type: 'string', description: 'Mode 2 uniquement' },
         message: { type: 'string', description: 'Texte principal (Mode 2)' },
         link: { type: 'string', description: 'URL destination (Mode 2)' },
@@ -453,7 +454,7 @@ const TOOLS = [
   },
   {
     name: 'create_ad',
-    description: 'Crée une pub en associant un créatif à un ad set.',
+    description: 'CrÃ©e une pub en associant un crÃ©atif Ã  un ad set.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -468,7 +469,7 @@ const TOOLS = [
   },
   {
     name: 'create_ad_from_post',
-    description: 'Pipeline complet en 1 appel : crée créatif + pub depuis un post FB existant. Idéal après get_best_posts_for_ads.',
+    description: 'Pipeline complet en 1 appel : crÃ©e crÃ©atif + pub depuis un post FB existant. IdÃ©al aprÃ¨s get_best_posts_for_ads.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -484,7 +485,7 @@ const TOOLS = [
   },
   {
     name: 'create_full_campaign',
-    description: 'Pipeline ultra-complet en 1 appel : crée campagne + ad set + créatif depuis post existant + pub. Autonomie totale en une seule opération.',
+    description: 'Pipeline ultra-complet en 1 appel : crÃ©e campagne + ad set + crÃ©atif depuis post existant + pub. Autonomie totale en une seule opÃ©ration.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -492,19 +493,19 @@ const TOOLS = [
         campaign_name: { type: 'string' },
         campaign_objective: { type: 'string', enum: ['OUTCOME_AWARENESS', 'OUTCOME_TRAFFIC', 'OUTCOME_ENGAGEMENT', 'OUTCOME_LEADS', 'OUTCOME_SALES'] },
         adset_name: { type: 'string' },
-        daily_budget_cents: { type: 'number', description: 'Budget journalier en centimes (ex: 2000 = 20€)' },
+        daily_budget_cents: { type: 'number', description: 'Budget journalier en centimes (ex: 2000 = 20â¬)' },
         targeting: { type: 'object', description: 'Spec de ciblage complet (geo_locations requis)' },
         optimization_goal: { type: 'string', enum: ['OFFSITE_CONVERSIONS', 'LEAD_GENERATION', 'LINK_CLICKS', 'REACH', 'LANDING_PAGE_VIEWS', 'POST_ENGAGEMENT'] },
-        object_story_id: { type: 'string', description: 'Post existant FB/IG à utiliser comme créatif. Format: {page_id}_{post_id}' },
+        object_story_id: { type: 'string', description: 'Post existant FB/IG Ã  utiliser comme crÃ©atif. Format: {page_id}_{post_id}' },
         ad_name: { type: 'string' },
-        status: { type: 'string', enum: ['PAUSED', 'ACTIVE'], description: 'Défaut: PAUSED' }
+        status: { type: 'string', enum: ['PAUSED', 'ACTIVE'], description: 'DÃ©faut: PAUSED' }
       },
       required: ['account_id', 'campaign_name', 'campaign_objective', 'adset_name', 'daily_budget_cents', 'targeting', 'optimization_goal', 'object_story_id', 'ad_name']
     }
   },
   {
     name: 'change_entity_status',
-    description: 'Pause ou réactive une campagne, ad set ou pub.',
+    description: 'Pause ou rÃ©active une campagne, ad set ou pub.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -558,7 +559,7 @@ const TOOLS = [
   },
   {
     name: 'duplicate_ad',
-    description: 'Duplique une publicité, optionnellement dans un autre ad set.',
+    description: 'Duplique une publicitÃ©, optionnellement dans un autre ad set.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -572,7 +573,7 @@ const TOOLS = [
   },
   {
     name: 'update_adset_targeting',
-    description: 'Met à jour le ciblage d\'un ad set existant.',
+    description: 'Met Ã  jour le ciblage d\'un ad set existant.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -584,7 +585,7 @@ const TOOLS = [
   },
   {
     name: 'create_website_audience',
-    description: 'Crée une audience website custom basée sur le pixel.',
+    description: 'CrÃ©e une audience website custom basÃ©e sur le pixel.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -599,7 +600,7 @@ const TOOLS = [
   },
   {
     name: 'create_lookalike_audience',
-    description: 'Crée une audience lookalike depuis une audience source.',
+    description: 'CrÃ©e une audience lookalike depuis une audience source.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -614,7 +615,7 @@ const TOOLS = [
   },
   {
     name: 'upload_ad_image',
-    description: 'Upload une image depuis une URL publique vers la bibliothèque du compte.',
+    description: 'Upload une image depuis une URL publique vers la bibliothÃ¨que du compte.',
     inputSchema: {
       type: 'object',
       properties: { account_id: { type: 'string' }, image_url: { type: 'string' }, name: { type: 'string' } },
@@ -623,7 +624,7 @@ const TOOLS = [
   },
   {
     name: 'upload_ad_video',
-    description: 'Upload une vidéo depuis une URL publique vers la bibliothèque du compte.',
+    description: 'Upload une vidÃ©o depuis une URL publique vers la bibliothÃ¨que du compte.',
     inputSchema: {
       type: 'object',
       properties: { account_id: { type: 'string' }, video_url: { type: 'string' }, title: { type: 'string' } },
@@ -632,9 +633,9 @@ const TOOLS = [
   }
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 function scorePostForObjective(post, objective) {
   const actions = post.insights?.data || [];
@@ -652,13 +653,13 @@ function scorePostForObjective(post, objective) {
 
   switch (objective) {
     case 'reservation':
-      // Score réservation : privilégie engagement + clics (intent)
+      // Score rÃ©servation : privilÃ©gie engagement + clics (intent)
       return engagementRate * 40 + clicks * 0.3 + reach * 0.001;
     case 'awareness':
-      // Score notoriété : privilégie reach + vues vidéo
+      // Score notoriÃ©tÃ© : privilÃ©gie reach + vues vidÃ©o
       return reach * 0.01 + videoViews * 0.005;
     case 'traffic':
-      // Score trafic : privilégie clics
+      // Score trafic : privilÃ©gie clics
       return clicks * 2 + engagementRate * 20;
     case 'engagement':
     default:
@@ -666,13 +667,13 @@ function scorePostForObjective(post, objective) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// EXÉCUTION OUTILS
-// ─────────────────────────────────────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// EXÃCUTION OUTILS
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function runTool(name, args) {
   switch (name) {
 
-    // ── ADS LECTURE ──────────────────────────────────────────────────────────
+    // ââ ADS LECTURE ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
     case 'list_ad_accounts':
       return (await meta('/me/adaccounts', 'GET', null, {
@@ -779,7 +780,7 @@ async function runTool(name, args) {
         ad_format: args.ad_format || 'MOBILE_FEED_STANDARD'
       })).data || [];
 
-    // ── CONTENUS FACEBOOK PAGE ───────────────────────────────────────────────
+    // ââ CONTENUS FACEBOOK PAGE âââââââââââââââââââââââââââââââââââââââââââââââ
 
     case 'list_page_posts': {
       const data = await metaPage(args.page_id, `/${args.page_id}/posts`, 'GET', null, {
@@ -906,9 +907,9 @@ async function runTool(name, args) {
 
       // 4. Ajouter recommandations
       top.forEach((p, i) => {
-        if (i === 0) p.recommendation = `Meilleur post pour ${args.objective} — utiliser en priorité avec create_ad_from_post`;
-        else if (p.media_type === 'video') p.recommendation = `Vidéo performante — bon pour notoriété et engagement`;
-        else p.recommendation = `Post solide — alternative créative`;
+        if (i === 0) p.recommendation = `Meilleur post pour ${args.objective} â utiliser en prioritÃ© avec create_ad_from_post`;
+        else if (p.media_type === 'video') p.recommendation = `VidÃ©o performante â bon pour notoriÃ©tÃ© et engagement`;
+        else p.recommendation = `Post solide â alternative crÃ©ative`;
       });
 
       return {
@@ -919,13 +920,13 @@ async function runTool(name, args) {
       };
     }
 
-    // ── CONTENUS INSTAGRAM ───────────────────────────────────────────────────
+    // ââ CONTENUS INSTAGRAM âââââââââââââââââââââââââââââââââââââââââââââââââââ
 
     case 'get_instagram_account': {
       const data = await meta(`/${args.page_id}`, 'GET', null, {
         fields: 'instagram_business_account{id,username,name,followers_count,media_count,profile_picture_url}'
       });
-      return data.instagram_business_account || { error: 'Aucun compte Instagram Business lié à cette page' };
+      return data.instagram_business_account || { error: 'Aucun compte Instagram Business liÃ© Ã  cette page' };
     }
 
     case 'list_instagram_posts': {
@@ -1035,7 +1036,7 @@ async function runTool(name, args) {
       };
     }
 
-    // ── ADS ÉCRITURE ─────────────────────────────────────────────────────────
+    // ââ ADS ÃCRITURE âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
     case 'create_campaign': {
       const body = {
@@ -1059,6 +1060,8 @@ async function runTool(name, args) {
         targeting: args.targeting,
         optimization_goal: args.optimization_goal,
         billing_event: args.billing_event || 'IMPRESSIONS',
+        destination_type: args.destination_type || 'FACEBOOK',
+        special_ad_categories: [],
         bid_strategy: args.bid_strategy || 'LOWEST_COST_WITHOUT_CAP',
         status: args.status || 'PAUSED'
       };
@@ -1073,7 +1076,7 @@ async function runTool(name, args) {
       if (args.object_story_id) {
         creativeBody.object_story_id = args.object_story_id;
       } else {
-        if (!args.page_id || !args.message || !args.link) throw new Error('page_id, message et link requis en mode création');
+        if (!args.page_id || !args.message || !args.link) throw new Error('page_id, message et link requis en mode crÃ©ation');
         const link_data = { message: args.message, link: args.link, name: args.headline || '', description: args.description || '' };
         if (args.image_hash) link_data.image_hash = args.image_hash;
         if (args.call_to_action_type) link_data.call_to_action = { type: args.call_to_action_type, value: { link: args.link } };
@@ -1098,7 +1101,7 @@ async function runTool(name, args) {
     }
 
     case 'create_ad_from_post': {
-      const creativeName = args.creative_name || `Créatif · ${args.ad_name} · ${new Date().toLocaleDateString('fr-FR')}`;
+      const creativeName = args.creative_name || `CrÃ©atif Â· ${args.ad_name} Â· ${new Date().toLocaleDateString('fr-FR')}`;
       const creative = await meta(`/act_${args.account_id}/adcreatives`, 'POST', {
         name: creativeName, object_story_id: args.object_story_id
       });
@@ -1110,7 +1113,7 @@ async function runTool(name, args) {
     }
 
     case 'create_full_campaign': {
-      // Étape 1 : campagne
+      // Ãtape 1 : campagne
       const campaignBody = {
         name: args.campaign_name,
         objective: args.campaign_objective,
@@ -1119,7 +1122,7 @@ async function runTool(name, args) {
       };
       const campaign = await meta(`/act_${args.account_id}/campaigns`, 'POST', campaignBody);
 
-      // Étape 2 : ad set
+      // Ãtape 2 : ad set
       const adset = await meta(`/act_${args.account_id}/adsets`, 'POST', {
         name: args.adset_name, campaign_id: campaign.id,
         daily_budget: Math.round(args.daily_budget_cents),
@@ -1130,13 +1133,13 @@ async function runTool(name, args) {
         status: args.status || 'PAUSED'
       });
 
-      // Étape 3 : créatif depuis post existant
+      // Ãtape 3 : crÃ©atif depuis post existant
       const creative = await meta(`/act_${args.account_id}/adcreatives`, 'POST', {
-        name: `Créatif · ${args.ad_name}`,
+        name: `CrÃ©atif Â· ${args.ad_name}`,
         object_story_id: args.object_story_id
       });
 
-      // Étape 4 : pub
+      // Ãtape 4 : pub
       const ad = await meta(`/act_${args.account_id}/ads`, 'POST', {
         name: args.ad_name, adset_id: adset.id,
         creative: { creative_id: creative.id }, status: args.status || 'PAUSED'
@@ -1149,7 +1152,7 @@ async function runTool(name, args) {
         creative_id: creative.id,
         ad_id: ad.id,
         status: args.status || 'PAUSED',
-        summary: `Campagne "${args.campaign_name}" créée complète en 1 appel. Statut: PAUSED. Active depuis Meta Ads Manager quand prêt.`
+        summary: `Campagne "${args.campaign_name}" crÃ©Ã©e complÃ¨te en 1 appel. Statut: PAUSED. Active depuis Meta Ads Manager quand prÃªt.`
       };
     }
 
@@ -1196,7 +1199,7 @@ async function runTool(name, args) {
     case 'create_website_audience': {
       const pixels = await meta(`/act_${args.account_id}/adspixels`, 'GET', null, { fields: 'id', limit: 1 });
       const pixel_id = args.pixel_id || pixels.data?.[0]?.id;
-      if (!pixel_id) throw new Error('Aucun pixel trouvé');
+      if (!pixel_id) throw new Error('Aucun pixel trouvÃ©');
       const rule = args.event_name
         ? JSON.stringify({ inclusions: { operator: 'or', rules: [{ event_sources: [{ id: pixel_id, type: 'pixel' }], retention_seconds: args.retention_days * 86400, filter: { operator: 'and', filters: [{ field: 'event', operator: 'eq', value: args.event_name }] } }] } })
         : JSON.stringify({ inclusions: { operator: 'or', rules: [{ event_sources: [{ id: pixel_id, type: 'pixel' }], retention_seconds: args.retention_days * 86400 }] } });
@@ -1229,9 +1232,9 @@ async function runTool(name, args) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // MCP SERVER
-// ─────────────────────────────────────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function createMCPServer() {
   const server = new Server(
     { name: 'dose-meta-mcp', version: '8.0.0' },
@@ -1269,6 +1272,6 @@ app.all('/mcp', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Dose Meta MCP v8.0 — ${TOOLS.length} outils — port ${PORT}`);
+  console.log(`Dose Meta MCP v8.0 â ${TOOLS.length} outils â port ${PORT}`);
   console.log(`Token: ${META_TOKEN ? 'OK' : 'MANQUANT'}`);
 });
