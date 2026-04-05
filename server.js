@@ -1000,12 +1000,14 @@ async function runTool(name, args) {
 
     case 'create_campaign': {
       const body = {
-        name: args.name, objective: args.objective,
+        name: args.name,
+        objective: args.objective,
         status: args.status || 'PAUSED',
-        special_ad_categories: (args.special_ad_categories && args.special_ad_categories.length > 0)
-          ? args.special_ad_categories
-          : ['NONE']
+        buying_type: 'AUCTION'
       };
+      if (args.special_ad_categories && args.special_ad_categories.length > 0) {
+        body.special_ad_categories = args.special_ad_categories;
+      }
       if (args.daily_budget) body.daily_budget = Math.round(args.daily_budget);
       if (args.lifetime_budget) body.lifetime_budget = Math.round(args.lifetime_budget);
       const r = await meta(`/act_${args.account_id}/campaigns`, 'POST', body);
@@ -1072,8 +1074,10 @@ async function runTool(name, args) {
     case 'create_full_campaign': {
       // Étape 1 : campagne
       const campaignBody = {
-        name: args.campaign_name, objective: args.campaign_objective,
-        status: args.status || 'PAUSED', special_ad_categories: ['NONE']
+        name: args.campaign_name,
+        objective: args.campaign_objective,
+        status: args.status || 'PAUSED',
+        buying_type: 'AUCTION'
       };
       const campaign = await meta(`/act_${args.account_id}/campaigns`, 'POST', campaignBody);
 
@@ -1192,7 +1196,7 @@ async function runTool(name, args) {
 // ─────────────────────────────────────────────────────────────────────────────
 function createMCPServer() {
   const server = new Server(
-    { name: 'dose-meta-mcp', version: '7.2.0' },
+    { name: 'dose-meta-mcp', version: '7.3.0' },
     { capabilities: { tools: {} } }
   );
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
@@ -1210,7 +1214,7 @@ function createMCPServer() {
 }
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', server: 'dose-meta-mcp', version: '7.2.0', tools: TOOLS.length, meta_token: !!META_TOKEN });
+  res.json({ status: 'ok', server: 'dose-meta-mcp', version: '7.3.0', tools: TOOLS.length, meta_token: !!META_TOKEN });
 });
 
 app.all('/mcp', async (req, res) => {
