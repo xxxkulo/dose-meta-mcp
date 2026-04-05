@@ -1,16 +1,15 @@
 import express from 'express';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 const app = express();
 app.use(express.json());
 
-// CORS — obligatoire pour que Claude.ai puisse se connecter
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Mcp-Session-Id');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
@@ -19,7 +18,6 @@ const META_TOKEN = process.env.META_SYSTEM_TOKEN;
 const META_VERSION = 'v21.0';
 const BASE = `https://graph.facebook.com/${META_VERSION}`;
 
-// ─── Helper Meta Graph API ────────────────────────────────────────────────────
 async function meta(path, method = 'GET', body = null, extraParams = {}) {
   const url = new URL(`${BASE}${path}`);
   url.searchParams.set('access_token', META_TOKEN);
@@ -34,7 +32,6 @@ async function meta(path, method = 'GET', body = null, extraParams = {}) {
   return data;
 }
 
-// ─── Outils MCP ───────────────────────────────────────────────────────────────
 const TOOLS = [
   {
     name: 'list_campaigns',
@@ -90,7 +87,7 @@ const TOOLS = [
   },
   {
     name: 'pause_entity',
-    description: 'Met en pause une campagne, un ad set ou une publicité Meta.',
+    description: 'Met en pause une campagne, ad set ou publicité Meta.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -102,7 +99,7 @@ const TOOLS = [
   },
   {
     name: 'resume_entity',
-    description: 'Réactive une campagne, un ad set ou une publicité Meta.',
+    description: 'Réactive une campagne, ad set ou publicité Meta.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -139,7 +136,7 @@ const TOOLS = [
   },
   {
     name: 'get_pixel_health',
-    description: 'Vérifie l\'état et les événements du pixel Meta d\'un compte.',
+    description: 'Vérifie l\'état du pixel Meta d\'un compte.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -150,7 +147,6 @@ const TOOLS = [
   }
 ];
 
-// ─── Exécution des outils ─────────────────────────────────────────────────────
 async function runTool(name, args) {
   switch (name) {
     case 'list_campaigns': {
@@ -174,7 +170,7 @@ async function runTool(name, args) {
       return (await meta(`/act_${args.account_id}/adsets`, 'GET', null, params)).data || [];
     }
     case 'list_ads': {
-      const params = { fields: 'id,name,adset_id,campaign_id,status,effective_status,creative{id,name,thumbnail_url}', limit: 100 };
+      const params = { fields: 'id,name,adset_id,campaign_id,status,effective_status', limit: 100 };
       if (args.campaign_id) params.campaign_id = args.campaign_id;
       if (args.adset_id) params.adset_id = args.adset_id;
       return (await meta(`/act_${args.account_id}/ads`, 'GET', null, params)).data || [];
@@ -192,22 +188,20 @@ async function runTool(name, args) {
       return { success: r.success, entity_id: args.entity_id, daily_budget: args.daily_budget };
     }
     case 'list_custom_audiences': {
-      const params = { fields: 'id,name,subtype,approximate_count_lower_bound,approximate_count_upper_bound', limit: 100 };
+      const params = { fields: 'id,name,subtype,approximate_count_lower_bound', limit: 100 };
       if (args.subtype && args.subtype !== 'ALL') params.subtype = args.subtype;
       return (await meta(`/act_${args.account_id}/customaudiences`, 'GET', null, params)).data || [];
     }
     case 'get_pixel_health': {
-      const pixels = await meta(`/act_${args.account_id}/adspixels`, 'GET', null, {
+      return (await meta(`/act_${args.account_id}/adspixels`, 'GET', null, {
         fields: 'id,name,last_fired_time', limit: 10
-      });
-      return pixels.data || [];
+      })).data || [];
     }
     default:
       throw new Error(`Outil inconnu: ${name}`);
   }
 }
 
-// ─── Serveur MCP ──────────────────────────────────────────────────────────────
 function createMCPServer() {
   const server = new Server(
     { name: 'dose-meta-mcp', version: '1.0.0' },
@@ -227,46 +221,33 @@ function createMCPServer() {
   return server;
 }
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
-
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', server: 'dose-meta-mcp', tools: TOOLS.length, meta_token: !!META_TOKEN });
 });
 
-// Stockage des transports actifs par sessionId
-const transports = {};
-
-// Endpoint SSE — Claude.ai se connecte ici
-app.get('/sse', async (req, res) => {
-  const transport = new SSEServerTransport('/messages', res);
-  const server = createMCPServer();
-
-  transports[transport.sessionId] = transport;
-
-  res.on('close', () => {
-    delete transports[transport.sessionId];
-  });
-
-  await server.connect(transport);
-});
-
-// Endpoint POST — reçoit les messages MCP et les route vers le bon transport
-app.post('/messages', async (req, res) => {
-  const sessionId = req.query.sessionId;
-  const transport = transports[sessionId];
-  if (transport) {
-    await transport.handlePostMessage(req, res);
-  } else {
-    res.status(400).json({ error: `Session inconnue: ${sessionId}` });
+// Endpoint MCP unique — nouveau protocole Streamable HTTP
+app.all('/mcp', async (req, res) => {
+  try {
+    const server = createMCPServer();
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+    });
+    await server.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+    res.on('close', () => server.close());
+  } catch (err) {
+    console.error('MCP error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: err.message });
+    }
   }
 });
 
-// ─── Démarrage ────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Dose Meta MCP démarré — port ${PORT}`);
-  console.log(`Health: http://localhost:${PORT}/health`);
-  console.log(`SSE:    http://localhost:${PORT}/sse`);
-  console.log(`Token Meta: ${META_TOKEN ? 'OK' : 'MANQUANT'}`);
+  console.log(`Dose Meta MCP v3 démarré — port ${PORT}`);
+  console.log(`Health : http://localhost:${PORT}/health`);
+  console.log(`MCP    : http://localhost:${PORT}/mcp`);
+  console.log(`Token  : ${META_TOKEN ? 'OK' : 'MANQUANT'}`);
 });
