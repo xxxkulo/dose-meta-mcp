@@ -28,8 +28,28 @@ async function meta(path, method = 'GET', body = null, extraParams = {}) {
   for (const [k, v] of Object.entries(extraParams)) {
     url.searchParams.set(k, String(v));
   }
-  const opts = { method, headers: { 'Content-Type': 'application/json' } };
-  if (body) opts.body = JSON.stringify(body);
+
+  let opts;
+  if (body && method !== 'GET') {
+    // Meta Marketing API attend du form-encoded pour les POST, pas du JSON
+    const form = new URLSearchParams();
+    for (const [k, v] of Object.entries(body)) {
+      if (v === null || v === undefined) continue;
+      if (Array.isArray(v) || (typeof v === 'object')) {
+        form.set(k, JSON.stringify(v));
+      } else {
+        form.set(k, String(v));
+      }
+    }
+    opts = {
+      method,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: form.toString()
+    };
+  } else {
+    opts = { method };
+  }
+
   const res = await fetch(url.toString(), opts);
   const data = await res.json();
   if (data.error) throw new Error(`Meta API: ${data.error.message} (code: ${data.error.code})`);
@@ -58,8 +78,27 @@ async function metaPage(page_id, path, method = 'GET', body = null, extraParams 
   for (const [k, v] of Object.entries(extraParams)) {
     url.searchParams.set(k, String(v));
   }
-  const opts = { method, headers: { 'Content-Type': 'application/json' } };
-  if (body) opts.body = JSON.stringify(body);
+
+  let opts;
+  if (body && method !== 'GET') {
+    const form = new URLSearchParams();
+    for (const [k, v] of Object.entries(body)) {
+      if (v === null || v === undefined) continue;
+      if (Array.isArray(v) || (typeof v === 'object')) {
+        form.set(k, JSON.stringify(v));
+      } else {
+        form.set(k, String(v));
+      }
+    }
+    opts = {
+      method,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: form.toString()
+    };
+  } else {
+    opts = { method };
+  }
+
   const res = await fetch(url.toString(), opts);
   const data = await res.json();
   if (data.error) throw new Error(`Meta Page API: ${data.error.message} (code: ${data.error.code})`);
@@ -1003,11 +1042,10 @@ async function runTool(name, args) {
         name: args.name,
         objective: args.objective,
         status: args.status || 'PAUSED',
-        buying_type: 'AUCTION'
+        special_ad_categories: (args.special_ad_categories && args.special_ad_categories.length > 0)
+          ? args.special_ad_categories
+          : []
       };
-      if (args.special_ad_categories && args.special_ad_categories.length > 0) {
-        body.special_ad_categories = args.special_ad_categories;
-      }
       if (args.daily_budget) body.daily_budget = Math.round(args.daily_budget);
       if (args.lifetime_budget) body.lifetime_budget = Math.round(args.lifetime_budget);
       const r = await meta(`/act_${args.account_id}/campaigns`, 'POST', body);
@@ -1077,7 +1115,7 @@ async function runTool(name, args) {
         name: args.campaign_name,
         objective: args.campaign_objective,
         status: args.status || 'PAUSED',
-        buying_type: 'AUCTION'
+        special_ad_categories: []
       };
       const campaign = await meta(`/act_${args.account_id}/campaigns`, 'POST', campaignBody);
 
@@ -1196,7 +1234,7 @@ async function runTool(name, args) {
 // ─────────────────────────────────────────────────────────────────────────────
 function createMCPServer() {
   const server = new Server(
-    { name: 'dose-meta-mcp', version: '7.3.0' },
+    { name: 'dose-meta-mcp', version: '8.0.0' },
     { capabilities: { tools: {} } }
   );
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
@@ -1214,7 +1252,7 @@ function createMCPServer() {
 }
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', server: 'dose-meta-mcp', version: '7.3.0', tools: TOOLS.length, meta_token: !!META_TOKEN });
+  res.json({ status: 'ok', server: 'dose-meta-mcp', version: '8.0.0', tools: TOOLS.length, meta_token: !!META_TOKEN });
 });
 
 app.all('/mcp', async (req, res) => {
@@ -1231,6 +1269,6 @@ app.all('/mcp', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Dose Meta MCP v7.1 — ${TOOLS.length} outils — port ${PORT}`);
+  console.log(`Dose Meta MCP v8.0 — ${TOOLS.length} outils — port ${PORT}`);
   console.log(`Token: ${META_TOKEN ? 'OK' : 'MANQUANT'}`);
 });
