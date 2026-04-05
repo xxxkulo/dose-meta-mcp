@@ -6,11 +6,20 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 const app = express();
 app.use(express.json());
 
+// CORS — obligatoire pour que Claude.ai puisse se connecter
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
+  next();
+});
+
 const META_TOKEN = process.env.META_SYSTEM_TOKEN;
 const META_VERSION = 'v21.0';
 const BASE = `https://graph.facebook.com/${META_VERSION}`;
 
-// ─── Helper : appel Meta Graph API ───────────────────────────────────────────
+// ─── Helper Meta Graph API ────────────────────────────────────────────────────
 async function meta(path, method = 'GET', body = null, extraParams = {}) {
   const url = new URL(`${BASE}${path}`);
   url.searchParams.set('access_token', META_TOKEN);
@@ -25,113 +34,112 @@ async function meta(path, method = 'GET', body = null, extraParams = {}) {
   return data;
 }
 
-// ─── Définition des outils ───────────────────────────────────────────────────
+// ─── Outils MCP ───────────────────────────────────────────────────────────────
 const TOOLS = [
   {
     name: 'list_campaigns',
-    description: 'Liste toutes les campagnes d\'un compte publicitaire Meta avec leur statut et budget.',
+    description: 'Liste toutes les campagnes d\'un compte publicitaire Meta.',
     inputSchema: {
       type: 'object',
       properties: {
-        account_id: { type: 'string', description: 'ID du compte pub Meta (sans le préfixe act_)' },
-        status: { type: 'string', enum: ['ACTIVE', 'PAUSED', 'ALL'], description: 'Filtrer par statut. Par défaut ALL.' }
+        account_id: { type: 'string', description: 'ID du compte pub Meta (sans act_)' },
+        status: { type: 'string', enum: ['ACTIVE', 'PAUSED', 'ALL'], description: 'Statut. Défaut: ALL' }
       },
       required: ['account_id']
     }
   },
   {
     name: 'get_insights',
-    description: 'Récupère les métriques de performance (dépenses, CPM, leads, clics, impressions, ROAS) pour un compte, une campagne ou un ad set.',
+    description: 'Métriques de performance : dépenses, CPM, leads, clics, impressions.',
     inputSchema: {
       type: 'object',
       properties: {
         account_id: { type: 'string', description: 'ID du compte pub Meta' },
-        level: { type: 'string', enum: ['account', 'campaign', 'adset', 'ad'], description: 'Niveau d\'agrégation. Par défaut account.' },
-        date_preset: { type: 'string', enum: ['today', 'yesterday', 'last_7d', 'last_14d', 'last_30d', 'this_month', 'last_month'], description: 'Période. Par défaut last_30d.' },
-        entity_id: { type: 'string', description: 'ID de la campagne ou ad set (optionnel, pour filtrer)' }
+        level: { type: 'string', enum: ['account', 'campaign', 'adset', 'ad'], description: 'Niveau. Défaut: account' },
+        date_preset: { type: 'string', enum: ['today', 'yesterday', 'last_7d', 'last_14d', 'last_30d', 'this_month', 'last_month'], description: 'Période. Défaut: last_30d' },
+        entity_id: { type: 'string', description: 'ID campagne ou adset (optionnel)' }
       },
       required: ['account_id']
     }
   },
   {
     name: 'list_adsets',
-    description: 'Liste les ad sets (ensembles de publicités) d\'un compte ou d\'une campagne.',
+    description: 'Liste les ad sets d\'un compte ou d\'une campagne Meta.',
     inputSchema: {
       type: 'object',
       properties: {
         account_id: { type: 'string', description: 'ID du compte pub Meta' },
         campaign_id: { type: 'string', description: 'Filtrer par campagne (optionnel)' },
-        status: { type: 'string', enum: ['ACTIVE', 'PAUSED', 'ALL'], description: 'Filtrer par statut. Par défaut ALL.' }
+        status: { type: 'string', enum: ['ACTIVE', 'PAUSED', 'ALL'], description: 'Statut. Défaut: ALL' }
       },
       required: ['account_id']
     }
   },
   {
     name: 'list_ads',
-    description: 'Liste les publicités d\'un compte, d\'une campagne ou d\'un ad set.',
+    description: 'Liste les publicités d\'un compte, campagne ou ad set Meta.',
     inputSchema: {
       type: 'object',
       properties: {
         account_id: { type: 'string', description: 'ID du compte pub Meta' },
         campaign_id: { type: 'string', description: 'Filtrer par campagne (optionnel)' },
-        adset_id: { type: 'string', description: 'Filtrer par ad set (optionnel)' },
-        status: { type: 'string', enum: ['ACTIVE', 'PAUSED', 'ALL'], description: 'Filtrer par statut' }
+        adset_id: { type: 'string', description: 'Filtrer par ad set (optionnel)' }
       },
       required: ['account_id']
     }
   },
   {
     name: 'pause_entity',
-    description: 'Met en pause une campagne, un ad set ou une publicité Meta immédiatement.',
+    description: 'Met en pause une campagne, un ad set ou une publicité Meta.',
     inputSchema: {
       type: 'object',
       properties: {
-        entity_id: { type: 'string', description: 'ID de la campagne, ad set ou publicité' },
-        entity_type: { type: 'string', enum: ['campaign', 'adset', 'ad'], description: 'Type d\'entité' }
+        entity_id: { type: 'string', description: 'ID de l\'entité' },
+        entity_type: { type: 'string', enum: ['campaign', 'adset', 'ad'] }
       },
       required: ['entity_id', 'entity_type']
     }
   },
   {
     name: 'resume_entity',
-    description: 'Réactive une campagne, un ad set ou une publicité Meta mise en pause.',
+    description: 'Réactive une campagne, un ad set ou une publicité Meta.',
     inputSchema: {
       type: 'object',
       properties: {
-        entity_id: { type: 'string', description: 'ID de la campagne, ad set ou publicité' },
-        entity_type: { type: 'string', enum: ['campaign', 'adset', 'ad'], description: 'Type d\'entité' }
+        entity_id: { type: 'string', description: 'ID de l\'entité' },
+        entity_type: { type: 'string', enum: ['campaign', 'adset', 'ad'] }
       },
       required: ['entity_id', 'entity_type']
     }
   },
   {
     name: 'update_budget',
-    description: 'Modifie le budget journalier d\'une campagne ou d\'un ad set Meta.',
+    description: 'Modifie le budget journalier d\'une campagne ou d\'un ad set.',
     inputSchema: {
       type: 'object',
       properties: {
-        entity_id: { type: 'string', description: 'ID de la campagne ou ad set' },
-        entity_type: { type: 'string', enum: ['campaign', 'adset'], description: 'Type d\'entité' },
-        daily_budget: { type: 'number', description: 'Nouveau budget journalier en centimes (ex: 1000 = 10€)' }
+        entity_id: { type: 'string', description: 'ID de l\'entité' },
+        entity_type: { type: 'string', enum: ['campaign', 'adset'] },
+        daily_budget: { type: 'number', description: 'Nouveau budget en centimes (1000 = 10€)' }
       },
       required: ['entity_id', 'entity_type', 'daily_budget']
     }
   },
   {
     name: 'list_custom_audiences',
-    description: 'Liste les audiences personnalisées (custom, lookalike, website) d\'un compte Meta.',
+    description: 'Liste les audiences personnalisées d\'un compte Meta.',
     inputSchema: {
       type: 'object',
       properties: {
         account_id: { type: 'string', description: 'ID du compte pub Meta' },
-        subtype: { type: 'string', enum: ['CUSTOM', 'LOOKALIKE', 'WEBSITE', 'ENGAGEMENT', 'ALL'], description: 'Type d\'audience. Par défaut ALL.' }
+        subtype: { type: 'string', enum: ['CUSTOM', 'LOOKALIKE', 'WEBSITE', 'ENGAGEMENT', 'ALL'] }
       },
       required: ['account_id']
     }
   },
   {
     name: 'get_pixel_health',
-    description: 'Vérifie l\'état et les événements reçus par le pixel Meta d\'un compte.',
+    description: 'Vérifie l\'état et les événements du pixel Meta d\'un compte.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -142,158 +150,123 @@ const TOOLS = [
   }
 ];
 
-// ─── Logique des outils ───────────────────────────────────────────────────────
+// ─── Exécution des outils ─────────────────────────────────────────────────────
 async function runTool(name, args) {
   switch (name) {
-
     case 'list_campaigns': {
-      const fields = 'id,name,status,effective_status,daily_budget,lifetime_budget,objective,start_time,stop_time';
-      const params = { fields, limit: 100 };
-      if (args.status && args.status !== 'ALL') {
-        params.effective_status = JSON.stringify([args.status]);
-      }
-      const data = await meta(`/act_${args.account_id}/campaigns`, 'GET', null, params);
-      return data.data || [];
+      const params = { fields: 'id,name,status,effective_status,daily_budget,lifetime_budget,objective', limit: 100 };
+      if (args.status && args.status !== 'ALL') params.effective_status = JSON.stringify([args.status]);
+      return (await meta(`/act_${args.account_id}/campaigns`, 'GET', null, params)).data || [];
     }
-
     case 'get_insights': {
-      const fields = 'campaign_name,adset_name,spend,impressions,clicks,ctr,cpm,cpc,reach,frequency,actions,action_values';
       const level = args.level || 'account';
       const date_preset = args.date_preset || 'last_30d';
-      let path = `/act_${args.account_id}/insights`;
-      if (args.entity_id && level !== 'account') {
-        path = `/${args.entity_id}/insights`;
-      }
-      const data = await meta(path, 'GET', null, { fields, level, date_preset, limit: 100 });
-      return data.data || [];
+      const path = (args.entity_id && level !== 'account') ? `/${args.entity_id}/insights` : `/act_${args.account_id}/insights`;
+      return (await meta(path, 'GET', null, {
+        fields: 'campaign_name,adset_name,spend,impressions,clicks,ctr,cpm,cpc,reach,actions,action_values',
+        level, date_preset, limit: 100
+      })).data || [];
     }
-
     case 'list_adsets': {
-      const fields = 'id,name,campaign_id,status,effective_status,daily_budget,lifetime_budget,targeting,optimization_goal,billing_event,bid_strategy,start_time,end_time';
-      const params = { fields, limit: 100 };
+      const params = { fields: 'id,name,campaign_id,status,effective_status,daily_budget,targeting,optimization_goal', limit: 100 };
       if (args.campaign_id) params.campaign_id = args.campaign_id;
-      if (args.status && args.status !== 'ALL') {
-        params.effective_status = JSON.stringify([args.status]);
-      }
-      const data = await meta(`/act_${args.account_id}/adsets`, 'GET', null, params);
-      return data.data || [];
+      if (args.status && args.status !== 'ALL') params.effective_status = JSON.stringify([args.status]);
+      return (await meta(`/act_${args.account_id}/adsets`, 'GET', null, params)).data || [];
     }
-
     case 'list_ads': {
-      const fields = 'id,name,adset_id,campaign_id,status,effective_status,creative{id,name,thumbnail_url},tracking_specs';
-      const params = { fields, limit: 100 };
+      const params = { fields: 'id,name,adset_id,campaign_id,status,effective_status,creative{id,name,thumbnail_url}', limit: 100 };
       if (args.campaign_id) params.campaign_id = args.campaign_id;
       if (args.adset_id) params.adset_id = args.adset_id;
-      if (args.status && args.status !== 'ALL') {
-        params.effective_status = JSON.stringify([args.status]);
-      }
-      const data = await meta(`/act_${args.account_id}/ads`, 'GET', null, params);
-      return data.data || [];
+      return (await meta(`/act_${args.account_id}/ads`, 'GET', null, params)).data || [];
     }
-
     case 'pause_entity': {
-      const result = await meta(`/${args.entity_id}`, 'POST', { status: 'PAUSED' });
-      return { success: result.success, entity_id: args.entity_id, new_status: 'PAUSED' };
+      const r = await meta(`/${args.entity_id}`, 'POST', { status: 'PAUSED' });
+      return { success: r.success, entity_id: args.entity_id, new_status: 'PAUSED' };
     }
-
     case 'resume_entity': {
-      const result = await meta(`/${args.entity_id}`, 'POST', { status: 'ACTIVE' });
-      return { success: result.success, entity_id: args.entity_id, new_status: 'ACTIVE' };
+      const r = await meta(`/${args.entity_id}`, 'POST', { status: 'ACTIVE' });
+      return { success: r.success, entity_id: args.entity_id, new_status: 'ACTIVE' };
     }
-
     case 'update_budget': {
-      const body = { daily_budget: Math.round(args.daily_budget) };
-      const result = await meta(`/${args.entity_id}`, 'POST', body);
-      return { success: result.success, entity_id: args.entity_id, daily_budget: args.daily_budget };
+      const r = await meta(`/${args.entity_id}`, 'POST', { daily_budget: Math.round(args.daily_budget) });
+      return { success: r.success, entity_id: args.entity_id, daily_budget: args.daily_budget };
     }
-
     case 'list_custom_audiences': {
-      const fields = 'id,name,subtype,approximate_count_lower_bound,approximate_count_upper_bound,delivery_status';
-      const params = { fields, limit: 100 };
+      const params = { fields: 'id,name,subtype,approximate_count_lower_bound,approximate_count_upper_bound', limit: 100 };
       if (args.subtype && args.subtype !== 'ALL') params.subtype = args.subtype;
-      const data = await meta(`/act_${args.account_id}/customaudiences`, 'GET', null, params);
-      return data.data || [];
+      return (await meta(`/act_${args.account_id}/customaudiences`, 'GET', null, params)).data || [];
     }
-
     case 'get_pixel_health': {
       const pixels = await meta(`/act_${args.account_id}/adspixels`, 'GET', null, {
-        fields: 'id,name,creation_time,last_fired_time,code',
-        limit: 10
+        fields: 'id,name,last_fired_time', limit: 10
       });
-      const result = [];
-      for (const pixel of (pixels.data || [])) {
-        const stats = await meta(`/${pixel.id}/stats`, 'GET', null, {
-          start_time: Math.floor(Date.now() / 1000) - 7 * 86400,
-          end_time: Math.floor(Date.now() / 1000),
-          aggregation: 'event'
-        });
-        result.push({ ...pixel, events: stats.data || [] });
-      }
-      return result;
+      return pixels.data || [];
     }
-
     default:
-      throw new Error(`Outil inconnu : ${name}`);
+      throw new Error(`Outil inconnu: ${name}`);
   }
 }
 
-// ─── Création du serveur MCP ──────────────────────────────────────────────────
+// ─── Serveur MCP ──────────────────────────────────────────────────────────────
 function createMCPServer() {
   const server = new Server(
     { name: 'dose-meta-mcp', version: '1.0.0' },
     { capabilities: { tools: {} } }
   );
-
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
-
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
     const { name, arguments: args } = req.params;
     try {
-      if (!META_TOKEN) throw new Error('META_SYSTEM_TOKEN non configuré dans les variables d\'environnement Railway');
+      if (!META_TOKEN) throw new Error('META_SYSTEM_TOKEN manquant dans les variables Render');
       const result = await runTool(name, args);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
-      };
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
     } catch (err) {
-      return {
-        content: [{ type: 'text', text: `Erreur : ${err.message}` }],
-        isError: true
-      };
+      return { content: [{ type: 'text', text: `Erreur: ${err.message}` }], isError: true };
     }
   });
-
   return server;
 }
 
-// ─── Routes Express ───────────────────────────────────────────────────────────
+// ─── Routes ───────────────────────────────────────────────────────────────────
 
-// Health check (pour vérifier que le serveur tourne)
+// Health check
 app.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    server: 'dose-meta-mcp',
-    version: '1.0.0',
-    tools: TOOLS.length,
-    meta_token_configured: !!META_TOKEN
-  });
+  res.json({ status: 'ok', server: 'dose-meta-mcp', tools: TOOLS.length, meta_token: !!META_TOKEN });
 });
 
-// Endpoint SSE pour Claude MCP
+// Stockage des transports actifs par sessionId
+const transports = {};
+
+// Endpoint SSE — Claude.ai se connecte ici
 app.get('/sse', async (req, res) => {
-  const server = createMCPServer();
   const transport = new SSEServerTransport('/messages', res);
+  const server = createMCPServer();
+
+  transports[transport.sessionId] = transport;
+
+  res.on('close', () => {
+    delete transports[transport.sessionId];
+  });
+
   await server.connect(transport);
 });
 
+// Endpoint POST — reçoit les messages MCP et les route vers le bon transport
 app.post('/messages', async (req, res) => {
-  res.status(200).json({ received: true });
+  const sessionId = req.query.sessionId;
+  const transport = transports[sessionId];
+  if (transport) {
+    await transport.handlePostMessage(req, res);
+  } else {
+    res.status(400).json({ error: `Session inconnue: ${sessionId}` });
+  }
 });
 
 // ─── Démarrage ────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Dose Meta MCP Server démarré sur le port ${PORT}`);
-  console.log(`Health check : http://localhost:${PORT}/health`);
-  console.log(`Endpoint MCP : http://localhost:${PORT}/sse`);
-  console.log(`Token Meta configuré : ${!!META_TOKEN}`);
+  console.log(`Dose Meta MCP démarré — port ${PORT}`);
+  console.log(`Health: http://localhost:${PORT}/health`);
+  console.log(`SSE:    http://localhost:${PORT}/sse`);
+  console.log(`Token Meta: ${META_TOKEN ? 'OK' : 'MANQUANT'}`);
 });
