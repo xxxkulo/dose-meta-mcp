@@ -18,6 +18,10 @@ const META_TOKEN = process.env.META_SYSTEM_TOKEN;
 const META_VERSION = 'v21.0';
 const BASE = `https://graph.facebook.com/${META_VERSION}`;
 
+// Cache des Page Access Tokens (page_id → token)
+const PAGE_TOKEN_CACHE = {};
+
+// Appel API avec System User Token (ads, insights)
 async function meta(path, method = 'GET', body = null, extraParams = {}) {
   const url = new URL(`${BASE}${path}`);
   url.searchParams.set('access_token', META_TOKEN);
@@ -29,6 +33,36 @@ async function meta(path, method = 'GET', body = null, extraParams = {}) {
   const res = await fetch(url.toString(), opts);
   const data = await res.json();
   if (data.error) throw new Error(`Meta API: ${data.error.message} (code: ${data.error.code})`);
+  return data;
+}
+
+// Récupère le Page Access Token pour un page_id donné (auto-échange via System User Token)
+async function getPageToken(page_id) {
+  if (PAGE_TOKEN_CACHE[page_id]) return PAGE_TOKEN_CACHE[page_id];
+  const url = new URL(`${BASE}/${page_id}`);
+  url.searchParams.set('fields', 'access_token');
+  url.searchParams.set('access_token', META_TOKEN);
+  const res = await fetch(url.toString());
+  const data = await res.json();
+  if (data.error) throw new Error(`Page token error: ${data.error.message}. Vérifiez que le System User est admin de la page.`);
+  if (!data.access_token) throw new Error(`Impossible d'obtenir le Page Access Token pour la page ${page_id}. Le System User doit être ajouté comme admin de la page Facebook.`);
+  PAGE_TOKEN_CACHE[page_id] = data.access_token;
+  return data.access_token;
+}
+
+// Appel API avec Page Access Token (posts, photos, vidéos, insights de page)
+async function metaPage(page_id, path, method = 'GET', body = null, extraParams = {}) {
+  const token = await getPageToken(page_id);
+  const url = new URL(`${BASE}${path}`);
+  url.searchParams.set('access_token', token);
+  for (const [k, v] of Object.entries(extraParams)) {
+    url.searchParams.set(k, String(v));
+  }
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(url.toString(), opts);
+  const data = await res.json();
+  if (data.error) throw new Error(`Meta Page API: ${data.error.message} (code: ${data.error.code})`);
   return data;
 }
 
@@ -709,7 +743,7 @@ async function runTool(name, args) {
     // ── CONTENUS FACEBOOK PAGE ───────────────────────────────────────────────
 
     case 'list_page_posts': {
-      const data = await meta(`/${args.page_id}/posts`, 'GET', null, {
+      const data = await metaPage(args.page_id, `/${args.page_id}/posts`, 'GET', null, {
         fields: 'id,message,story,created_time,full_picture,permalink_url,attachments{media_type,url,description,media{image{src}}},shares,likes.summary(true)',
         limit: args.limit || 25
       });
@@ -727,7 +761,7 @@ async function runTool(name, args) {
     }
 
     case 'list_page_videos': {
-      const data = await meta(`/${args.page_id}/videos`, 'GET', null, {
+      const data = await metaPage(args.page_id, `/${args.page_id}/videos`, 'GET', null, {
         fields: 'id,title,description,created_time,length,picture,permalink_url,views,likes.summary(true)',
         limit: args.limit || 20
       });
@@ -745,7 +779,7 @@ async function runTool(name, args) {
     }
 
     case 'list_page_photos': {
-      const data = await meta(`/${args.page_id}/photos`, 'GET', null, {
+      const data = await metaPage(args.page_id, `/${args.page_id}/photos`, 'GET', null, {
         fields: 'id,name,created_time,link,images,likes.summary(true)',
         limit: args.limit || 20,
         type: 'uploaded'
@@ -767,14 +801,15 @@ async function runTool(name, args) {
         'post_reactions_by_type_total', 'post_video_views'
       ].join(',');
       try {
-        const data = await meta(`/${args.post_id}/insights`, 'GET', null, { metric: metrics });
+        const page_id = args.post_id.split('_')[0];
+        const data = await metaPage(page_id, `/${args.post_id}/insights`, 'GET', null, { metric: metrics });
         const result = {};
         for (const item of (data.data || [])) {
           result[item.name] = item.values?.[0]?.value || 0;
         }
         return result;
       } catch {
-        return { error: 'Insights non disponibles pour ce post (post trop récent ou permissions insuffisantes)' };
+        return { error: 'Insights non disponibles pour ce post' };
       }
     }
 
@@ -782,18 +817,16 @@ async function runTool(name, args) {
       const limit = args.limit || 20;
       const topN = args.top_n || 5;
 
-      // 1. Récupérer les posts
-      const postsData = await meta(`/${args.page_id}/posts`, 'GET', null, {
+      const postsData = await metaPage(args.page_id, `/${args.page_id}/posts`, 'GET', null, {
         fields: 'id,message,story,created_time,full_picture,permalink_url,attachments{media_type},shares,likes.summary(true)',
         limit
       });
       const posts = postsData.data || [];
 
-      // 2. Récupérer les insights pour chaque post (en parallèle)
       const metrics = 'post_impressions_unique,post_engaged_users,post_clicks,post_video_views,post_reactions_by_type_total';
       const withInsights = await Promise.all(posts.map(async (post) => {
         try {
-          const ins = await meta(`/${post.id}/insights`, 'GET', null, { metric: metrics });
+          const ins = await metaPage(args.page_id, `/${post.id}/insights`, 'GET', null, { metric: metrics });
           const values = {};
           for (const item of (ins.data || [])) {
             values[item.name] = typeof item.values?.[0]?.value === 'object'
@@ -1157,7 +1190,7 @@ async function runTool(name, args) {
 // ─────────────────────────────────────────────────────────────────────────────
 function createMCPServer() {
   const server = new Server(
-    { name: 'dose-meta-mcp', version: '7.0.0' },
+    { name: 'dose-meta-mcp', version: '7.1.0' },
     { capabilities: { tools: {} } }
   );
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
@@ -1175,7 +1208,7 @@ function createMCPServer() {
 }
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', server: 'dose-meta-mcp', version: '7.0.0', tools: TOOLS.length, meta_token: !!META_TOKEN });
+  res.json({ status: 'ok', server: 'dose-meta-mcp', version: '7.1.0', tools: TOOLS.length, meta_token: !!META_TOKEN });
 });
 
 app.all('/mcp', async (req, res) => {
@@ -1192,6 +1225,6 @@ app.all('/mcp', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Dose Meta MCP v7.0 — ${TOOLS.length} outils — port ${PORT}`);
+  console.log(`Dose Meta MCP v7.1 — ${TOOLS.length} outils — port ${PORT}`);
   console.log(`Token: ${META_TOKEN ? 'OK' : 'MANQUANT'}`);
 });
