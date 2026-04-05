@@ -1002,7 +1002,9 @@ async function runTool(name, args) {
       const body = {
         name: args.name, objective: args.objective,
         status: args.status || 'PAUSED',
-        special_ad_categories: args.special_ad_categories || []
+        special_ad_categories: (args.special_ad_categories && args.special_ad_categories.length > 0)
+          ? args.special_ad_categories
+          : ['NONE']
       };
       if (args.daily_budget) body.daily_budget = Math.round(args.daily_budget);
       if (args.lifetime_budget) body.lifetime_budget = Math.round(args.lifetime_budget);
@@ -1071,7 +1073,7 @@ async function runTool(name, args) {
       // Étape 1 : campagne
       const campaignBody = {
         name: args.campaign_name, objective: args.campaign_objective,
-        status: args.status || 'PAUSED', special_ad_categories: []
+        status: args.status || 'PAUSED', special_ad_categories: ['NONE']
       };
       const campaign = await meta(`/act_${args.account_id}/campaigns`, 'POST', campaignBody);
 
@@ -1190,7 +1192,7 @@ async function runTool(name, args) {
 // ─────────────────────────────────────────────────────────────────────────────
 function createMCPServer() {
   const server = new Server(
-    { name: 'dose-meta-mcp', version: '7.1.0' },
+    { name: 'dose-meta-mcp', version: '7.2.0' },
     { capabilities: { tools: {} } }
   );
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
@@ -1208,7 +1210,7 @@ function createMCPServer() {
 }
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', server: 'dose-meta-mcp', version: '7.1.0', tools: TOOLS.length, meta_token: !!META_TOKEN });
+  res.json({ status: 'ok', server: 'dose-meta-mcp', version: '7.2.0', tools: TOOLS.length, meta_token: !!META_TOKEN });
 });
 
 app.all('/mcp', async (req, res) => {
