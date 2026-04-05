@@ -34,16 +34,18 @@ async function meta(path, method = 'GET', body = null, extraParams = {}) {
 
 const TOOLS = [
 
-  // ── LECTURE ─────────────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // BLOC 1 — LECTURE META ADS
+  // ══════════════════════════════════════════════════════════════════════════
 
   {
     name: 'list_ad_accounts',
-    description: 'Liste tous les comptes publicitaires accessibles avec le token.',
+    description: 'Liste tous les comptes publicitaires accessibles.',
     inputSchema: { type: 'object', properties: { limit: { type: 'number' } } }
   },
   {
     name: 'list_campaigns',
-    description: 'Liste les campagnes d\'un compte publicitaire Meta.',
+    description: 'Liste les campagnes d\'un compte pub Meta.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -83,7 +85,7 @@ const TOOLS = [
   },
   {
     name: 'get_performance',
-    description: 'Métriques de performance : dépenses, CPM, CPC, CTR, leads, ROAS, impressions.',
+    description: 'Métriques de performance : spend, CPM, CPC, CTR, leads, ROAS.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -97,15 +99,15 @@ const TOOLS = [
   },
   {
     name: 'get_timeseries',
-    description: 'Données de performance jour par jour.',
+    description: 'Performance jour par jour pour une campagne, ad set ou pub.',
     inputSchema: {
       type: 'object',
       properties: {
         account_id: { type: 'string' },
         entity_id: { type: 'string' },
         entity_type: { type: 'string', enum: ['campaign', 'adset', 'ad'] },
-        start_date: { type: 'string' },
-        end_date: { type: 'string' }
+        start_date: { type: 'string', description: 'YYYY-MM-DD' },
+        end_date: { type: 'string', description: 'YYYY-MM-DD' }
       },
       required: ['account_id', 'entity_id', 'entity_type']
     }
@@ -124,12 +126,12 @@ const TOOLS = [
   },
   {
     name: 'get_pixel_health',
-    description: 'Vérifie l\'état du pixel Meta.',
+    description: 'Vérifie l\'état du pixel Meta et ses événements récents.',
     inputSchema: { type: 'object', properties: { account_id: { type: 'string' } }, required: ['account_id'] }
   },
   {
     name: 'list_ad_creatives',
-    description: 'Liste les créatifs publicitaires d\'un compte Meta.',
+    description: 'Liste les créatifs publicitaires d\'un compte.',
     inputSchema: {
       type: 'object',
       properties: { account_id: { type: 'string' }, limit: { type: 'number' } },
@@ -138,7 +140,7 @@ const TOOLS = [
   },
   {
     name: 'search_ad_images',
-    description: 'Recherche les images publicitaires disponibles dans un compte.',
+    description: 'Recherche les images disponibles dans la bibliothèque du compte.',
     inputSchema: {
       type: 'object',
       properties: { account_id: { type: 'string' }, name: { type: 'string' }, limit: { type: 'number' } },
@@ -147,7 +149,7 @@ const TOOLS = [
   },
   {
     name: 'search_ad_videos',
-    description: 'Recherche les vidéos publicitaires disponibles dans un compte.',
+    description: 'Recherche les vidéos disponibles dans la bibliothèque du compte.',
     inputSchema: {
       type: 'object',
       properties: { account_id: { type: 'string' }, title: { type: 'string' }, limit: { type: 'number' } },
@@ -156,7 +158,7 @@ const TOOLS = [
   },
   {
     name: 'search_targeting',
-    description: 'Recherche d\'options de ciblage : intérêts, géolocalisation, comportements.',
+    description: 'Recherche des options de ciblage : intérêts, géolocalisation, comportements.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -169,7 +171,7 @@ const TOOLS = [
   },
   {
     name: 'estimate_audience_size',
-    description: 'Estime la taille d\'audience potentielle.',
+    description: 'Estime la taille d\'audience avant de créer un ad set.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -182,7 +184,7 @@ const TOOLS = [
   },
   {
     name: 'preview_creative',
-    description: 'Génère un aperçu d\'un créatif publicitaire existant.',
+    description: 'Génère un aperçu HTML d\'un créatif existant.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -193,26 +195,243 @@ const TOOLS = [
     }
   },
 
-  // ── NOUVEAU v6 : POSTS FACEBOOK / INSTAGRAM ──────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // BLOC 2 — CONTENUS FACEBOOK PAGE (AUTONOMIE CRÉATIFS)
+  // ══════════════════════════════════════════════════════════════════════════
 
   {
     name: 'list_page_posts',
-    description: 'Liste les posts récents d\'une page Facebook avec leurs IDs, pour les utiliser comme créatifs publicitaires.',
+    description: 'Liste les posts récents d\'une page Facebook avec leurs IDs et métriques de base. Utilise les IDs pour créer des publicités via create_ad_from_post.',
     inputSchema: {
       type: 'object',
       properties: {
         page_id: { type: 'string', description: 'ID de la page Facebook' },
-        limit: { type: 'number', description: 'Nombre de posts à récupérer. Défaut: 20' }
+        limit: { type: 'number', description: 'Nombre de posts. Défaut: 25' }
       },
       required: ['page_id']
     }
   },
+  {
+    name: 'list_page_videos',
+    description: 'Liste les vidéos publiées sur une page Facebook. Idéal pour identifier des reels/vidéos performants à utiliser en pub.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        page_id: { type: 'string' },
+        limit: { type: 'number', description: 'Défaut: 20' }
+      },
+      required: ['page_id']
+    }
+  },
+  {
+    name: 'list_page_photos',
+    description: 'Liste les photos publiées sur une page Facebook.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        page_id: { type: 'string' },
+        limit: { type: 'number', description: 'Défaut: 20' }
+      },
+      required: ['page_id']
+    }
+  },
+  {
+    name: 'get_post_insights',
+    description: 'Récupère les métriques d\'un post Facebook spécifique : reach, impressions, engagement, clics, vues vidéo. Permet de sélectionner automatiquement les meilleurs posts pour les pubs.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        post_id: { type: 'string', description: 'ID du post (format: page_id_post_id)' }
+      },
+      required: ['post_id']
+    }
+  },
+  {
+    name: 'get_best_posts_for_ads',
+    description: 'Analyse automatiquement les N derniers posts d\'une page et retourne les meilleurs classés par engagement pour un objectif donné (réservation, notoriété, trafic). Outil clé pour l\'autonomie créative.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        page_id: { type: 'string', description: 'ID de la page Facebook' },
+        objective: { type: 'string', enum: ['reservation', 'awareness', 'traffic', 'engagement'], description: 'Objectif publicitaire pour adapter le scoring' },
+        limit: { type: 'number', description: 'Nombre de posts à analyser. Défaut: 20' },
+        top_n: { type: 'number', description: 'Nombre de meilleurs posts à retourner. Défaut: 5' }
+      },
+      required: ['page_id', 'objective']
+    }
+  },
 
-  // ── ÉCRITURE ─────────────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // BLOC 3 — CONTENUS INSTAGRAM BUSINESS (AUTONOMIE CRÉATIFS IG)
+  // ══════════════════════════════════════════════════════════════════════════
 
   {
+    name: 'get_instagram_account',
+    description: 'Récupère l\'ID du compte Instagram Business lié à une page Facebook. Nécessaire pour accéder aux posts Instagram.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        page_id: { type: 'string', description: 'ID de la page Facebook' }
+      },
+      required: ['page_id']
+    }
+  },
+  {
+    name: 'list_instagram_posts',
+    description: 'Liste les posts et reels récents du compte Instagram Business lié à la page. Inclut type de média, URL, légende, timestamp.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        ig_user_id: { type: 'string', description: 'ID du compte Instagram Business (depuis get_instagram_account)' },
+        limit: { type: 'number', description: 'Nombre de posts. Défaut: 20' },
+        media_type: { type: 'string', enum: ['IMAGE', 'VIDEO', 'CAROUSEL_ALBUM', 'ALL'], description: 'Filtrer par type. Défaut: ALL' }
+      },
+      required: ['ig_user_id']
+    }
+  },
+  {
+    name: 'get_instagram_post_insights',
+    description: 'Métriques d\'un post Instagram : reach, impressions, engagement, vues vidéo, saves, shares. Pour sélectionner les meilleurs contenus IG à booster.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        ig_media_id: { type: 'string', description: 'ID du media Instagram (depuis list_instagram_posts)' }
+      },
+      required: ['ig_media_id']
+    }
+  },
+  {
+    name: 'get_best_instagram_posts_for_ads',
+    description: 'Analyse automatiquement les N derniers posts Instagram et retourne les meilleurs classés par performance pour un objectif donné.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        ig_user_id: { type: 'string', description: 'ID du compte Instagram Business' },
+        objective: { type: 'string', enum: ['reservation', 'awareness', 'traffic', 'engagement'] },
+        limit: { type: 'number', description: 'Posts à analyser. Défaut: 20' },
+        top_n: { type: 'number', description: 'Meilleurs posts à retourner. Défaut: 5' }
+      },
+      required: ['ig_user_id', 'objective']
+    }
+  },
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // BLOC 4 — ÉCRITURE META ADS (CRÉATION COMPLÈTE)
+  // ══════════════════════════════════════════════════════════════════════════
+
+  {
+    name: 'create_campaign',
+    description: 'Crée une nouvelle campagne Meta. Statut PAUSED par défaut.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        account_id: { type: 'string' },
+        name: { type: 'string' },
+        objective: { type: 'string', enum: ['OUTCOME_AWARENESS', 'OUTCOME_TRAFFIC', 'OUTCOME_ENGAGEMENT', 'OUTCOME_LEADS', 'OUTCOME_APP_PROMOTION', 'OUTCOME_SALES'] },
+        status: { type: 'string', enum: ['PAUSED', 'ACTIVE'] },
+        daily_budget: { type: 'number', description: 'En centimes (2000 = 20€)' },
+        lifetime_budget: { type: 'number' },
+        special_ad_categories: { type: 'array', items: { type: 'string' } }
+      },
+      required: ['account_id', 'name', 'objective']
+    }
+  },
+  {
+    name: 'create_adset',
+    description: 'Crée un ad set dans une campagne avec ciblage, budget et optimisation.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        account_id: { type: 'string' },
+        campaign_id: { type: 'string' },
+        name: { type: 'string' },
+        daily_budget: { type: 'number', description: 'En centimes (2000 = 20€)' },
+        targeting: { type: 'object', description: 'Spec de ciblage Meta (geo_locations, age_min, age_max, interests...)' },
+        optimization_goal: { type: 'string', enum: ['OFFSITE_CONVERSIONS', 'LEAD_GENERATION', 'LINK_CLICKS', 'REACH', 'IMPRESSIONS', 'LANDING_PAGE_VIEWS', 'POST_ENGAGEMENT', 'PROFILE_VISIT'] },
+        billing_event: { type: 'string', enum: ['IMPRESSIONS', 'LINK_CLICKS', 'THRUPLAY'] },
+        bid_strategy: { type: 'string', enum: ['LOWEST_COST_WITHOUT_CAP', 'LOWEST_COST_WITH_BID_CAP', 'COST_CAP'] },
+        status: { type: 'string', enum: ['PAUSED', 'ACTIVE'] },
+        start_time: { type: 'string' },
+        end_time: { type: 'string' }
+      },
+      required: ['account_id', 'campaign_id', 'name', 'daily_budget', 'targeting', 'optimization_goal']
+    }
+  },
+  {
+    name: 'create_ad_creative',
+    description: 'Crée un créatif pub. Mode 1: post existant via object_story_id. Mode 2: nouveau créatif image/vidéo + texte.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        account_id: { type: 'string' },
+        name: { type: 'string' },
+        object_story_id: { type: 'string', description: 'Mode post existant. Format: {page_id}_{post_id}. Récupéré via list_page_posts ou get_best_posts_for_ads.' },
+        page_id: { type: 'string', description: 'Mode 2 uniquement' },
+        message: { type: 'string', description: 'Texte principal (Mode 2)' },
+        link: { type: 'string', description: 'URL destination (Mode 2)' },
+        headline: { type: 'string' },
+        description: { type: 'string' },
+        image_hash: { type: 'string', description: 'Hash depuis upload_ad_image' },
+        video_id: { type: 'string', description: 'ID depuis upload_ad_video' },
+        call_to_action_type: { type: 'string', enum: ['BOOK_TRAVEL', 'CONTACT_US', 'LEARN_MORE', 'SHOP_NOW', 'SIGN_UP', 'SUBSCRIBE', 'GET_OFFER', 'GET_QUOTE', 'BOOK_NOW', 'APPLY_NOW', 'RESERVE', 'BUY_TICKETS'] }
+      },
+      required: ['account_id', 'name']
+    }
+  },
+  {
+    name: 'create_ad',
+    description: 'Crée une pub en associant un créatif à un ad set.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        account_id: { type: 'string' },
+        adset_id: { type: 'string' },
+        creative_id: { type: 'string' },
+        name: { type: 'string' },
+        status: { type: 'string', enum: ['PAUSED', 'ACTIVE'] }
+      },
+      required: ['account_id', 'adset_id', 'creative_id', 'name']
+    }
+  },
+  {
+    name: 'create_ad_from_post',
+    description: 'Pipeline complet en 1 appel : crée créatif + pub depuis un post FB existant. Idéal après get_best_posts_for_ads.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        account_id: { type: 'string' },
+        adset_id: { type: 'string' },
+        object_story_id: { type: 'string', description: 'Format: {page_id}_{post_id}' },
+        ad_name: { type: 'string' },
+        creative_name: { type: 'string' },
+        status: { type: 'string', enum: ['PAUSED', 'ACTIVE'] }
+      },
+      required: ['account_id', 'adset_id', 'object_story_id', 'ad_name']
+    }
+  },
+  {
+    name: 'create_full_campaign',
+    description: 'Pipeline ultra-complet en 1 appel : crée campagne + ad set + créatif depuis post existant + pub. Autonomie totale en une seule opération.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        account_id: { type: 'string', description: 'ID compte pub' },
+        campaign_name: { type: 'string' },
+        campaign_objective: { type: 'string', enum: ['OUTCOME_AWARENESS', 'OUTCOME_TRAFFIC', 'OUTCOME_ENGAGEMENT', 'OUTCOME_LEADS', 'OUTCOME_SALES'] },
+        adset_name: { type: 'string' },
+        daily_budget_cents: { type: 'number', description: 'Budget journalier en centimes (ex: 2000 = 20€)' },
+        targeting: { type: 'object', description: 'Spec de ciblage complet (geo_locations requis)' },
+        optimization_goal: { type: 'string', enum: ['OFFSITE_CONVERSIONS', 'LEAD_GENERATION', 'LINK_CLICKS', 'REACH', 'LANDING_PAGE_VIEWS', 'POST_ENGAGEMENT'] },
+        object_story_id: { type: 'string', description: 'Post existant FB/IG à utiliser comme créatif. Format: {page_id}_{post_id}' },
+        ad_name: { type: 'string' },
+        status: { type: 'string', enum: ['PAUSED', 'ACTIVE'], description: 'Défaut: PAUSED' }
+      },
+      required: ['account_id', 'campaign_name', 'campaign_objective', 'adset_name', 'daily_budget_cents', 'targeting', 'optimization_goal', 'object_story_id', 'ad_name']
+    }
+  },
+  {
     name: 'change_entity_status',
-    description: 'Met en pause ou réactive une campagne, ad set ou publicité.',
+    description: 'Pause ou réactive une campagne, ad set ou pub.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -225,21 +444,21 @@ const TOOLS = [
   },
   {
     name: 'change_entity_budget',
-    description: 'Modifie le budget journalier d\'une campagne ou ad set.',
+    description: 'Modifie le budget journalier ou total d\'une campagne ou ad set.',
     inputSchema: {
       type: 'object',
       properties: {
         entity_id: { type: 'string' },
         entity_type: { type: 'string', enum: ['campaign', 'adset'] },
-        daily_budget: { type: 'number', description: 'En centimes (1000 = 10€)' },
-        lifetime_budget: { type: 'number' }
+        daily_budget: { type: 'number', description: 'En centimes' },
+        lifetime_budget: { type: 'number', description: 'En centimes' }
       },
       required: ['entity_id', 'entity_type']
     }
   },
   {
     name: 'duplicate_campaign',
-    description: 'Duplique une campagne Meta existante.',
+    description: 'Duplique une campagne Meta.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -252,7 +471,7 @@ const TOOLS = [
   },
   {
     name: 'duplicate_adset',
-    description: 'Duplique un ad set.',
+    description: 'Duplique un ad set, optionnellement dans une autre campagne.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -266,7 +485,7 @@ const TOOLS = [
   },
   {
     name: 'duplicate_ad',
-    description: 'Duplique une publicité.',
+    description: 'Duplique une publicité, optionnellement dans un autre ad set.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -279,8 +498,20 @@ const TOOLS = [
     }
   },
   {
+    name: 'update_adset_targeting',
+    description: 'Met à jour le ciblage d\'un ad set existant.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        adset_id: { type: 'string' },
+        targeting: { type: 'object' }
+      },
+      required: ['adset_id', 'targeting']
+    }
+  },
+  {
     name: 'create_website_audience',
-    description: 'Crée une audience basée sur les visiteurs du site web.',
+    description: 'Crée une audience website custom basée sur le pixel.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -295,7 +526,7 @@ const TOOLS = [
   },
   {
     name: 'create_lookalike_audience',
-    description: 'Crée une audience lookalike.',
+    description: 'Crée une audience lookalike depuis une audience source.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -303,128 +534,14 @@ const TOOLS = [
         name: { type: 'string' },
         origin_audience_id: { type: 'string' },
         country: { type: 'string' },
-        ratio: { type: 'number' }
+        ratio: { type: 'number', description: '0.01 = 1%, max 0.20' }
       },
       required: ['account_id', 'name', 'origin_audience_id', 'country']
     }
   },
   {
-    name: 'update_adset_targeting',
-    description: 'Met à jour le ciblage d\'un ad set.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        adset_id: { type: 'string' },
-        targeting: { type: 'object' }
-      },
-      required: ['adset_id', 'targeting']
-    }
-  },
-  {
-    name: 'create_campaign',
-    description: 'Crée une nouvelle campagne Meta.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        account_id: { type: 'string' },
-        name: { type: 'string' },
-        objective: { type: 'string', enum: ['OUTCOME_AWARENESS', 'OUTCOME_TRAFFIC', 'OUTCOME_ENGAGEMENT', 'OUTCOME_LEADS', 'OUTCOME_APP_PROMOTION', 'OUTCOME_SALES'] },
-        status: { type: 'string', enum: ['PAUSED', 'ACTIVE'] },
-        daily_budget: { type: 'number' },
-        lifetime_budget: { type: 'number' },
-        special_ad_categories: { type: 'array', items: { type: 'string' } }
-      },
-      required: ['account_id', 'name', 'objective']
-    }
-  },
-  {
-    name: 'create_adset',
-    description: 'Crée un nouvel ad set dans une campagne.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        account_id: { type: 'string' },
-        campaign_id: { type: 'string' },
-        name: { type: 'string' },
-        daily_budget: { type: 'number', description: 'En centimes' },
-        targeting: { type: 'object' },
-        optimization_goal: { type: 'string', enum: ['OFFSITE_CONVERSIONS', 'LEAD_GENERATION', 'LINK_CLICKS', 'REACH', 'IMPRESSIONS', 'LANDING_PAGE_VIEWS', 'POST_ENGAGEMENT', 'PROFILE_VISIT'] },
-        billing_event: { type: 'string', enum: ['IMPRESSIONS', 'LINK_CLICKS', 'THRUPLAY'] },
-        bid_strategy: { type: 'string', enum: ['LOWEST_COST_WITHOUT_CAP', 'LOWEST_COST_WITH_BID_CAP', 'COST_CAP'] },
-        status: { type: 'string', enum: ['PAUSED', 'ACTIVE'] },
-        start_time: { type: 'string' },
-        end_time: { type: 'string' }
-      },
-      required: ['account_id', 'campaign_id', 'name', 'daily_budget', 'targeting', 'optimization_goal']
-    }
-  },
-
-  // ── NOUVEAU v6 : create_ad_creative avec object_story_id ──────────────────────
-
-  {
-    name: 'create_ad_creative',
-    description: 'Crée un créatif publicitaire. Deux modes : (1) post existant FB/IG via object_story_id, (2) nouveau créatif via image_hash ou video_id + texte.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        account_id: { type: 'string', description: 'ID du compte pub' },
-        name: { type: 'string', description: 'Nom du créatif' },
-        // ── Mode 1 : post existant (Facebook ou Instagram) ──────────────────
-        object_story_id: {
-          type: 'string',
-          description: 'Mode post existant. Format Facebook : {page_id}_{post_id} (ex: 123456789_987654321). Format Instagram : ID du media IG. Récupère les IDs via list_page_posts.'
-        },
-        // ── Mode 2 : nouveau créatif from scratch ──────────────────────────
-        page_id: { type: 'string', description: 'ID de la page Facebook (Mode 2 uniquement)' },
-        message: { type: 'string', description: 'Texte principal (Mode 2 uniquement)' },
-        link: { type: 'string', description: 'URL de destination (Mode 2 uniquement)' },
-        headline: { type: 'string', description: 'Titre (Mode 2 optionnel)' },
-        description: { type: 'string', description: 'Description (Mode 2 optionnel)' },
-        image_hash: { type: 'string', description: 'Hash image depuis upload_ad_image (Mode 2 optionnel)' },
-        video_id: { type: 'string', description: 'ID vidéo depuis upload_ad_video (Mode 2 optionnel)' },
-        call_to_action_type: { type: 'string', enum: ['BOOK_TRAVEL', 'CONTACT_US', 'LEARN_MORE', 'SHOP_NOW', 'SIGN_UP', 'SUBSCRIBE', 'GET_OFFER', 'GET_QUOTE', 'BOOK_NOW', 'APPLY_NOW', 'RESERVE', 'BUY_TICKETS'] }
-      },
-      required: ['account_id', 'name']
-    }
-  },
-
-  // ── NOUVEAU v6 : create_ad_from_post — pipeline complet en 1 appel ───────────
-
-  {
-    name: 'create_ad_from_post',
-    description: 'Crée directement une publicité à partir d\'un post Facebook ou Instagram existant, en une seule opération. Crée le créatif + la pub en même temps.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        account_id: { type: 'string', description: 'ID du compte pub' },
-        adset_id: { type: 'string', description: 'ID de l\'ad set parent' },
-        object_story_id: { type: 'string', description: 'ID du post. Format FB : {page_id}_{post_id}. Récupère via list_page_posts.' },
-        ad_name: { type: 'string', description: 'Nom de la publicité' },
-        creative_name: { type: 'string', description: 'Nom du créatif (optionnel, généré auto si absent)' },
-        status: { type: 'string', enum: ['PAUSED', 'ACTIVE'], description: 'Statut initial. Défaut: PAUSED' }
-      },
-      required: ['account_id', 'adset_id', 'object_story_id', 'ad_name']
-    }
-  },
-
-  {
-    name: 'create_ad',
-    description: 'Crée une publicité en associant un créatif existant à un ad set.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        account_id: { type: 'string' },
-        adset_id: { type: 'string' },
-        creative_id: { type: 'string' },
-        name: { type: 'string' },
-        status: { type: 'string', enum: ['PAUSED', 'ACTIVE'] }
-      },
-      required: ['account_id', 'adset_id', 'creative_id', 'name']
-    }
-  },
-  {
     name: 'upload_ad_image',
-    description: 'Upload une image depuis une URL externe.',
+    description: 'Upload une image depuis une URL publique vers la bibliothèque du compte.',
     inputSchema: {
       type: 'object',
       properties: { account_id: { type: 'string' }, image_url: { type: 'string' }, name: { type: 'string' } },
@@ -433,7 +550,7 @@ const TOOLS = [
   },
   {
     name: 'upload_ad_video',
-    description: 'Upload une vidéo depuis une URL externe.',
+    description: 'Upload une vidéo depuis une URL publique vers la bibliothèque du compte.',
     inputSchema: {
       type: 'object',
       properties: { account_id: { type: 'string' }, video_url: { type: 'string' }, title: { type: 'string' } },
@@ -443,10 +560,46 @@ const TOOLS = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EXÉCUTION
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function scorePostForObjective(post, objective) {
+  const actions = post.insights?.data || [];
+  const getValue = (type) => {
+    const a = actions.find(x => x.name === type);
+    return a ? parseInt(a.values?.[0]?.value || 0) : 0;
+  };
+  const reach = getValue('post_impressions_unique');
+  const engagement = getValue('post_engaged_users');
+  const clicks = getValue('post_clicks');
+  const videoViews = getValue('post_video_views');
+  const reactions = getValue('post_reactions_by_type_total');
+
+  const engagementRate = reach > 0 ? engagement / reach : 0;
+
+  switch (objective) {
+    case 'reservation':
+      // Score réservation : privilégie engagement + clics (intent)
+      return engagementRate * 40 + clicks * 0.3 + reach * 0.001;
+    case 'awareness':
+      // Score notoriété : privilégie reach + vues vidéo
+      return reach * 0.01 + videoViews * 0.005;
+    case 'traffic':
+      // Score trafic : privilégie clics
+      return clicks * 2 + engagementRate * 20;
+    case 'engagement':
+    default:
+      return engagementRate * 50 + reactions * 0.1;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXÉCUTION OUTILS
 // ─────────────────────────────────────────────────────────────────────────────
 async function runTool(name, args) {
   switch (name) {
+
+    // ── ADS LECTURE ──────────────────────────────────────────────────────────
 
     case 'list_ad_accounts':
       return (await meta('/me/adaccounts', 'GET', null, {
@@ -518,7 +671,7 @@ async function runTool(name, args) {
 
     case 'list_ad_creatives':
       return (await meta(`/act_${args.account_id}/adcreatives`, 'GET', null, {
-        fields: 'id,name,title,body,image_url,thumbnail_url,object_story_id,object_story_spec,effective_object_story_id',
+        fields: 'id,name,title,body,image_url,thumbnail_url,object_story_id,object_story_spec',
         limit: args.limit || 50
       })).data || [];
 
@@ -553,158 +706,264 @@ async function runTool(name, args) {
         ad_format: args.ad_format || 'MOBILE_FEED_STANDARD'
       })).data || [];
 
-    // ── NOUVEAU v6 : list_page_posts ─────────────────────────────────────────
+    // ── CONTENUS FACEBOOK PAGE ───────────────────────────────────────────────
+
     case 'list_page_posts': {
       const data = await meta(`/${args.page_id}/posts`, 'GET', null, {
-        fields: 'id,message,story,created_time,full_picture,permalink_url,attachments{media_type,url,description,media{image{src}}}',
-        limit: args.limit || 20
+        fields: 'id,message,story,created_time,full_picture,permalink_url,attachments{media_type,url,description,media{image{src}}},shares,likes.summary(true)',
+        limit: args.limit || 25
       });
-      // Formater pour affichage clair
       return (data.data || []).map(post => ({
         id: post.id,
-        object_story_id: post.id, // déjà au format {page_id}_{post_id}
-        message: post.message ? post.message.substring(0, 120) + (post.message.length > 120 ? '...' : '') : '(no text)',
+        object_story_id: post.id,
+        message: (post.message || post.story || '').substring(0, 150),
         created_time: post.created_time,
         permalink_url: post.permalink_url,
+        media_type: post.attachments?.data?.[0]?.media_type || 'text',
         has_image: !!post.full_picture,
-        media_type: post.attachments?.data?.[0]?.media_type || 'none'
+        likes: post.likes?.summary?.total_count || 0,
+        shares: post.shares?.count || 0
       }));
     }
 
-    // ── MISE À JOUR v6 : create_ad_creative avec object_story_id ─────────────
-    case 'create_ad_creative': {
-      let creativeBody = { name: args.name };
-
-      if (args.object_story_id) {
-        // Mode 1 : post existant FB ou IG
-        creativeBody.object_story_id = args.object_story_id;
-      } else {
-        // Mode 2 : nouveau créatif from scratch
-        if (!args.page_id) throw new Error('page_id requis en mode création (sans object_story_id)');
-        if (!args.message) throw new Error('message requis en mode création (sans object_story_id)');
-        if (!args.link) throw new Error('link requis en mode création (sans object_story_id)');
-
-        const link_data = {
-          message: args.message,
-          link: args.link,
-          name: args.headline || '',
-          description: args.description || ''
-        };
-        if (args.image_hash) link_data.image_hash = args.image_hash;
-        if (args.call_to_action_type) {
-          link_data.call_to_action = { type: args.call_to_action_type, value: { link: args.link } };
-        }
-
-        const story_spec = { page_id: args.page_id };
-        if (args.video_id) {
-          story_spec.video_data = { video_id: args.video_id, message: args.message, title: args.headline || '' };
-        } else {
-          story_spec.link_data = link_data;
-        }
-        creativeBody.object_story_spec = story_spec;
-      }
-
-      const r = await meta(`/act_${args.account_id}/adcreatives`, 'POST', creativeBody);
-      return { success: true, creative_id: r.id, name: args.name, mode: args.object_story_id ? 'existing_post' : 'new_creative' };
+    case 'list_page_videos': {
+      const data = await meta(`/${args.page_id}/videos`, 'GET', null, {
+        fields: 'id,title,description,created_time,length,picture,permalink_url,views,likes.summary(true)',
+        limit: args.limit || 20
+      });
+      return (data.data || []).map(v => ({
+        id: v.id,
+        title: v.title || '(sans titre)',
+        description: (v.description || '').substring(0, 100),
+        created_time: v.created_time,
+        length_seconds: v.length,
+        views: v.views || 0,
+        likes: v.likes?.summary?.total_count || 0,
+        permalink_url: v.permalink_url,
+        thumbnail: v.picture
+      }));
     }
 
-    // ── NOUVEAU v6 : create_ad_from_post — pipeline complet en 1 appel ───────
-    case 'create_ad_from_post': {
-      // Étape 1 : créer le créatif depuis le post existant
-      const creativeName = args.creative_name || `Créatif · ${args.ad_name} · ${new Date().toLocaleDateString('fr-FR')}`;
-      const creativeResult = await meta(`/act_${args.account_id}/adcreatives`, 'POST', {
-        name: creativeName,
-        object_story_id: args.object_story_id
+    case 'list_page_photos': {
+      const data = await meta(`/${args.page_id}/photos`, 'GET', null, {
+        fields: 'id,name,created_time,link,images,likes.summary(true)',
+        limit: args.limit || 20,
+        type: 'uploaded'
       });
+      return (data.data || []).map(p => ({
+        id: p.id,
+        caption: (p.name || '').substring(0, 100),
+        created_time: p.created_time,
+        link: p.link,
+        likes: p.likes?.summary?.total_count || 0,
+        url: p.images?.[0]?.source
+      }));
+    }
 
-      // Étape 2 : créer la pub en associant le créatif à l'ad set
-      const adResult = await meta(`/act_${args.account_id}/ads`, 'POST', {
-        name: args.ad_name,
-        adset_id: args.adset_id,
-        creative: { creative_id: creativeResult.id },
-        status: args.status || 'PAUSED'
+    case 'get_post_insights': {
+      const metrics = [
+        'post_impressions', 'post_impressions_unique',
+        'post_engaged_users', 'post_clicks',
+        'post_reactions_by_type_total', 'post_video_views'
+      ].join(',');
+      try {
+        const data = await meta(`/${args.post_id}/insights`, 'GET', null, { metric: metrics });
+        const result = {};
+        for (const item of (data.data || [])) {
+          result[item.name] = item.values?.[0]?.value || 0;
+        }
+        return result;
+      } catch {
+        return { error: 'Insights non disponibles pour ce post (post trop récent ou permissions insuffisantes)' };
+      }
+    }
+
+    case 'get_best_posts_for_ads': {
+      const limit = args.limit || 20;
+      const topN = args.top_n || 5;
+
+      // 1. Récupérer les posts
+      const postsData = await meta(`/${args.page_id}/posts`, 'GET', null, {
+        fields: 'id,message,story,created_time,full_picture,permalink_url,attachments{media_type},shares,likes.summary(true)',
+        limit
+      });
+      const posts = postsData.data || [];
+
+      // 2. Récupérer les insights pour chaque post (en parallèle)
+      const metrics = 'post_impressions_unique,post_engaged_users,post_clicks,post_video_views,post_reactions_by_type_total';
+      const withInsights = await Promise.all(posts.map(async (post) => {
+        try {
+          const ins = await meta(`/${post.id}/insights`, 'GET', null, { metric: metrics });
+          const values = {};
+          for (const item of (ins.data || [])) {
+            values[item.name] = typeof item.values?.[0]?.value === 'object'
+              ? Object.values(item.values[0].value).reduce((a, b) => a + b, 0)
+              : parseInt(item.values?.[0]?.value || 0);
+          }
+          return { ...post, insights: { data: ins.data || [] }, _metrics: values };
+        } catch {
+          return { ...post, _metrics: {} };
+        }
+      }));
+
+      // 3. Scorer et trier
+      const scored = withInsights.map(post => ({
+        id: post.id,
+        object_story_id: post.id,
+        message: (post.message || post.story || '').substring(0, 150),
+        created_time: post.created_time,
+        permalink_url: post.permalink_url,
+        media_type: post.attachments?.data?.[0]?.media_type || 'text',
+        has_image: !!post.full_picture,
+        reach: post._metrics.post_impressions_unique || 0,
+        engaged_users: post._metrics.post_engaged_users || 0,
+        clicks: post._metrics.post_clicks || 0,
+        video_views: post._metrics.post_video_views || 0,
+        reactions: post._metrics.post_reactions_by_type_total || 0,
+        shares: post.shares?.count || 0,
+        likes: post.likes?.summary?.total_count || 0,
+        engagement_rate: (post._metrics.post_impressions_unique || 0) > 0
+          ? ((post._metrics.post_engaged_users || 0) / post._metrics.post_impressions_unique * 100).toFixed(2) + '%'
+          : 'N/A',
+        score: scorePostForObjective({ insights: { data: (post._metrics && []) || [] }, ...post }, args.objective),
+        recommendation: ''
+      }));
+
+      scored.sort((a, b) => b.score - a.score);
+      const top = scored.slice(0, topN);
+
+      // 4. Ajouter recommandations
+      top.forEach((p, i) => {
+        if (i === 0) p.recommendation = `Meilleur post pour ${args.objective} — utiliser en priorité avec create_ad_from_post`;
+        else if (p.media_type === 'video') p.recommendation = `Vidéo performante — bon pour notoriété et engagement`;
+        else p.recommendation = `Post solide — alternative créative`;
       });
 
       return {
-        success: true,
-        creative_id: creativeResult.id,
-        creative_name: creativeName,
-        ad_id: adResult.id,
-        ad_name: args.ad_name,
-        status: args.status || 'PAUSED',
-        message: `Publicité créée depuis le post ${args.object_story_id} — statut PAUSED, à activer dans Meta Ads Manager.`
+        objective: args.objective,
+        posts_analyzed: posts.length,
+        top_posts: top,
+        usage_tip: `Utilise l'object_story_id du meilleur post avec create_ad_from_post ou create_full_campaign`
       };
     }
 
-    case 'create_ad': {
-      const r = await meta(`/act_${args.account_id}/ads`, 'POST', {
-        name: args.name, adset_id: args.adset_id,
-        creative: { creative_id: args.creative_id }, status: args.status || 'PAUSED'
+    // ── CONTENUS INSTAGRAM ───────────────────────────────────────────────────
+
+    case 'get_instagram_account': {
+      const data = await meta(`/${args.page_id}`, 'GET', null, {
+        fields: 'instagram_business_account{id,username,name,followers_count,media_count,profile_picture_url}'
       });
-      return { success: true, ad_id: r.id, name: args.name, status: args.status || 'PAUSED' };
+      return data.instagram_business_account || { error: 'Aucun compte Instagram Business lié à cette page' };
     }
 
-    case 'change_entity_status': {
-      const status = args.action === 'pause' ? 'PAUSED' : 'ACTIVE';
-      const r = await meta(`/${args.entity_id}`, 'POST', { status });
-      return { success: r.success, entity_id: args.entity_id, new_status: status };
+    case 'list_instagram_posts': {
+      const params = {
+        fields: 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count',
+        limit: args.limit || 20
+      };
+      const data = await meta(`/${args.ig_user_id}/media`, 'GET', null, params);
+      let posts = data.data || [];
+      if (args.media_type && args.media_type !== 'ALL') {
+        posts = posts.filter(p => p.media_type === args.media_type);
+      }
+      return posts.map(p => ({
+        id: p.id,
+        caption: (p.caption || '').substring(0, 150),
+        media_type: p.media_type,
+        media_url: p.media_url || p.thumbnail_url,
+        permalink: p.permalink,
+        timestamp: p.timestamp,
+        likes: p.like_count || 0,
+        comments: p.comments_count || 0
+      }));
     }
 
-    case 'change_entity_budget': {
-      const body = {};
-      if (args.daily_budget) body.daily_budget = Math.round(args.daily_budget);
-      if (args.lifetime_budget) body.lifetime_budget = Math.round(args.lifetime_budget);
-      const r = await meta(`/${args.entity_id}`, 'POST', body);
-      return { success: r.success, entity_id: args.entity_id, ...body };
+    case 'get_instagram_post_insights': {
+      const metrics = p => {
+        const base = ['impressions', 'reach', 'engagement', 'saved', 'profile_visits'];
+        if (p === 'VIDEO' || p === 'REEL') return [...base, 'video_views', 'plays'].join(',');
+        return base.join(',');
+      };
+      try {
+        const post = await meta(`/${args.ig_media_id}`, 'GET', null, { fields: 'media_type' });
+        const data = await meta(`/${args.ig_media_id}/insights`, 'GET', null, { metric: metrics(post.media_type) });
+        const result = {};
+        for (const item of (data.data || [])) {
+          result[item.name] = item.values?.[0]?.value || item.value || 0;
+        }
+        return result;
+      } catch (err) {
+        return { error: `Insights indisponibles : ${err.message}` };
+      }
     }
 
-    case 'duplicate_campaign': {
-      const body = { status: args.status || 'PAUSED' };
-      if (args.new_name) body.name = args.new_name;
-      const r = await meta(`/${args.campaign_id}/copies`, 'POST', body);
-      return { success: true, new_campaign_id: r.copied_campaign_id, status: args.status || 'PAUSED' };
-    }
+    case 'get_best_instagram_posts_for_ads': {
+      const limit = args.limit || 20;
+      const topN = args.top_n || 5;
 
-    case 'duplicate_adset': {
-      const body = { status: args.status || 'PAUSED', deep_copy: true };
-      if (args.target_campaign_id) body.campaign_id = args.target_campaign_id;
-      const r = await meta(`/${args.adset_id}/copies`, 'POST', body);
-      return { success: true, new_adset_id: r.copied_adset_id, status: args.status || 'PAUSED' };
-    }
-
-    case 'duplicate_ad': {
-      const body = { status: args.status || 'PAUSED' };
-      if (args.target_adset_id) body.adset_id = args.target_adset_id;
-      const r = await meta(`/${args.ad_id}/copies`, 'POST', body);
-      return { success: true, new_ad_id: r.copied_ad_id, status: args.status || 'PAUSED' };
-    }
-
-    case 'create_website_audience': {
-      const pixels = await meta(`/act_${args.account_id}/adspixels`, 'GET', null, { fields: 'id', limit: 1 });
-      const pixel_id = args.pixel_id || pixels.data?.[0]?.id;
-      if (!pixel_id) throw new Error('Aucun pixel trouvé sur ce compte');
-      const rule = args.event_name
-        ? JSON.stringify({ inclusions: { operator: 'or', rules: [{ event_sources: [{ id: pixel_id, type: 'pixel' }], retention_seconds: args.retention_days * 86400, filter: { operator: 'and', filters: [{ field: 'event', operator: 'eq', value: args.event_name }] } }] } })
-        : JSON.stringify({ inclusions: { operator: 'or', rules: [{ event_sources: [{ id: pixel_id, type: 'pixel' }], retention_seconds: args.retention_days * 86400 }] } });
-      const r = await meta(`/act_${args.account_id}/customaudiences`, 'POST', {
-        name: args.name, subtype: 'WEBSITE', rule, prefill: true
+      const data = await meta(`/${args.ig_user_id}/media`, 'GET', null, {
+        fields: 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count',
+        limit
       });
-      return { success: true, audience_id: r.id, name: args.name };
-    }
+      const posts = data.data || [];
 
-    case 'create_lookalike_audience': {
-      const r = await meta(`/act_${args.account_id}/customaudiences`, 'POST', {
-        name: args.name, subtype: 'LOOKALIKE',
-        origin_audience_id: args.origin_audience_id,
-        lookalike_spec: JSON.stringify({ type: 'similarity', ratio: args.ratio || 0.01, country: args.country })
+      const withInsights = await Promise.all(posts.map(async (post) => {
+        try {
+          const metricsList = ['impressions', 'reach', 'engagement', 'saved'];
+          if (post.media_type === 'VIDEO' || post.media_type === 'REELS') metricsList.push('video_views');
+          const ins = await meta(`/${post.id}/insights`, 'GET', null, { metric: metricsList.join(',') });
+          const values = {};
+          for (const item of (ins.data || [])) {
+            values[item.name] = item.values?.[0]?.value || item.value || 0;
+          }
+          return { ...post, _metrics: values };
+        } catch {
+          return { ...post, _metrics: {} };
+        }
+      }));
+
+      const scored = withInsights.map(post => {
+        const reach = post._metrics.reach || 0;
+        const engagement = post._metrics.engagement || 0;
+        const saves = post._metrics.saved || 0;
+        const videoViews = post._metrics.video_views || 0;
+        const engRate = reach > 0 ? engagement / reach : 0;
+
+        let score = 0;
+        switch (args.objective) {
+          case 'reservation': score = engRate * 40 + saves * 2 + engagement * 0.5; break;
+          case 'awareness': score = reach * 0.01 + videoViews * 0.005; break;
+          case 'traffic': score = engagement * 1 + engRate * 30; break;
+          default: score = engRate * 50 + saves * 1;
+        }
+
+        return {
+          id: post.id,
+          caption: (post.caption || '').substring(0, 150),
+          media_type: post.media_type,
+          media_url: post.media_url || post.thumbnail_url,
+          permalink: post.permalink,
+          timestamp: post.timestamp,
+          likes: post.like_count || 0,
+          comments: post.comments_count || 0,
+          reach,
+          engagement,
+          saves,
+          video_views: videoViews,
+          engagement_rate: reach > 0 ? (engRate * 100).toFixed(2) + '%' : 'N/A',
+          score
+        };
       });
-      return { success: true, audience_id: r.id, name: args.name };
+
+      scored.sort((a, b) => b.score - a.score);
+      return {
+        objective: args.objective,
+        posts_analyzed: posts.length,
+        top_posts: scored.slice(0, topN)
+      };
     }
 
-    case 'update_adset_targeting': {
-      const r = await meta(`/${args.adset_id}`, 'POST', { targeting: args.targeting });
-      return { success: r.success, adset_id: args.adset_id };
-    }
+    // ── ADS ÉCRITURE ─────────────────────────────────────────────────────────
 
     case 'create_campaign': {
       const body = {
@@ -734,19 +993,158 @@ async function runTool(name, args) {
       return { success: true, adset_id: r.id, name: args.name, status: args.status || 'PAUSED' };
     }
 
-    case 'upload_ad_image': {
-      const r = await meta(`/act_${args.account_id}/adimages`, 'POST', {
-        url: args.image_url, name: args.name || 'uploaded_image'
+    case 'create_ad_creative': {
+      let creativeBody = { name: args.name };
+      if (args.object_story_id) {
+        creativeBody.object_story_id = args.object_story_id;
+      } else {
+        if (!args.page_id || !args.message || !args.link) throw new Error('page_id, message et link requis en mode création');
+        const link_data = { message: args.message, link: args.link, name: args.headline || '', description: args.description || '' };
+        if (args.image_hash) link_data.image_hash = args.image_hash;
+        if (args.call_to_action_type) link_data.call_to_action = { type: args.call_to_action_type, value: { link: args.link } };
+        const story_spec = { page_id: args.page_id };
+        if (args.video_id) {
+          story_spec.video_data = { video_id: args.video_id, message: args.message, title: args.headline || '' };
+        } else {
+          story_spec.link_data = link_data;
+        }
+        creativeBody.object_story_spec = story_spec;
+      }
+      const r = await meta(`/act_${args.account_id}/adcreatives`, 'POST', creativeBody);
+      return { success: true, creative_id: r.id, name: args.name };
+    }
+
+    case 'create_ad': {
+      const r = await meta(`/act_${args.account_id}/ads`, 'POST', {
+        name: args.name, adset_id: args.adset_id,
+        creative: { creative_id: args.creative_id }, status: args.status || 'PAUSED'
       });
+      return { success: true, ad_id: r.id, name: args.name, status: args.status || 'PAUSED' };
+    }
+
+    case 'create_ad_from_post': {
+      const creativeName = args.creative_name || `Créatif · ${args.ad_name} · ${new Date().toLocaleDateString('fr-FR')}`;
+      const creative = await meta(`/act_${args.account_id}/adcreatives`, 'POST', {
+        name: creativeName, object_story_id: args.object_story_id
+      });
+      const ad = await meta(`/act_${args.account_id}/ads`, 'POST', {
+        name: args.ad_name, adset_id: args.adset_id,
+        creative: { creative_id: creative.id }, status: args.status || 'PAUSED'
+      });
+      return { success: true, creative_id: creative.id, ad_id: ad.id, ad_name: args.ad_name, status: args.status || 'PAUSED' };
+    }
+
+    case 'create_full_campaign': {
+      // Étape 1 : campagne
+      const campaignBody = {
+        name: args.campaign_name, objective: args.campaign_objective,
+        status: args.status || 'PAUSED', special_ad_categories: []
+      };
+      const campaign = await meta(`/act_${args.account_id}/campaigns`, 'POST', campaignBody);
+
+      // Étape 2 : ad set
+      const adset = await meta(`/act_${args.account_id}/adsets`, 'POST', {
+        name: args.adset_name, campaign_id: campaign.id,
+        daily_budget: Math.round(args.daily_budget_cents),
+        targeting: args.targeting,
+        optimization_goal: args.optimization_goal,
+        billing_event: 'IMPRESSIONS',
+        bid_strategy: 'LOWEST_COST_WITHOUT_CAP',
+        status: args.status || 'PAUSED'
+      });
+
+      // Étape 3 : créatif depuis post existant
+      const creative = await meta(`/act_${args.account_id}/adcreatives`, 'POST', {
+        name: `Créatif · ${args.ad_name}`,
+        object_story_id: args.object_story_id
+      });
+
+      // Étape 4 : pub
+      const ad = await meta(`/act_${args.account_id}/ads`, 'POST', {
+        name: args.ad_name, adset_id: adset.id,
+        creative: { creative_id: creative.id }, status: args.status || 'PAUSED'
+      });
+
+      return {
+        success: true,
+        campaign_id: campaign.id,
+        adset_id: adset.id,
+        creative_id: creative.id,
+        ad_id: ad.id,
+        status: args.status || 'PAUSED',
+        summary: `Campagne "${args.campaign_name}" créée complète en 1 appel. Statut: PAUSED. Active depuis Meta Ads Manager quand prêt.`
+      };
+    }
+
+    case 'change_entity_status': {
+      const status = args.action === 'pause' ? 'PAUSED' : 'ACTIVE';
+      const r = await meta(`/${args.entity_id}`, 'POST', { status });
+      return { success: r.success, entity_id: args.entity_id, new_status: status };
+    }
+
+    case 'change_entity_budget': {
+      const body = {};
+      if (args.daily_budget) body.daily_budget = Math.round(args.daily_budget);
+      if (args.lifetime_budget) body.lifetime_budget = Math.round(args.lifetime_budget);
+      const r = await meta(`/${args.entity_id}`, 'POST', body);
+      return { success: r.success, entity_id: args.entity_id, ...body };
+    }
+
+    case 'duplicate_campaign': {
+      const body = { status: args.status || 'PAUSED' };
+      if (args.new_name) body.name = args.new_name;
+      const r = await meta(`/${args.campaign_id}/copies`, 'POST', body);
+      return { success: true, new_campaign_id: r.copied_campaign_id };
+    }
+
+    case 'duplicate_adset': {
+      const body = { status: args.status || 'PAUSED', deep_copy: true };
+      if (args.target_campaign_id) body.campaign_id = args.target_campaign_id;
+      const r = await meta(`/${args.adset_id}/copies`, 'POST', body);
+      return { success: true, new_adset_id: r.copied_adset_id };
+    }
+
+    case 'duplicate_ad': {
+      const body = { status: args.status || 'PAUSED' };
+      if (args.target_adset_id) body.adset_id = args.target_adset_id;
+      const r = await meta(`/${args.ad_id}/copies`, 'POST', body);
+      return { success: true, new_ad_id: r.copied_ad_id };
+    }
+
+    case 'update_adset_targeting': {
+      const r = await meta(`/${args.adset_id}`, 'POST', { targeting: args.targeting });
+      return { success: r.success, adset_id: args.adset_id };
+    }
+
+    case 'create_website_audience': {
+      const pixels = await meta(`/act_${args.account_id}/adspixels`, 'GET', null, { fields: 'id', limit: 1 });
+      const pixel_id = args.pixel_id || pixels.data?.[0]?.id;
+      if (!pixel_id) throw new Error('Aucun pixel trouvé');
+      const rule = args.event_name
+        ? JSON.stringify({ inclusions: { operator: 'or', rules: [{ event_sources: [{ id: pixel_id, type: 'pixel' }], retention_seconds: args.retention_days * 86400, filter: { operator: 'and', filters: [{ field: 'event', operator: 'eq', value: args.event_name }] } }] } })
+        : JSON.stringify({ inclusions: { operator: 'or', rules: [{ event_sources: [{ id: pixel_id, type: 'pixel' }], retention_seconds: args.retention_days * 86400 }] } });
+      const r = await meta(`/act_${args.account_id}/customaudiences`, 'POST', { name: args.name, subtype: 'WEBSITE', rule, prefill: true });
+      return { success: true, audience_id: r.id };
+    }
+
+    case 'create_lookalike_audience': {
+      const r = await meta(`/act_${args.account_id}/customaudiences`, 'POST', {
+        name: args.name, subtype: 'LOOKALIKE',
+        origin_audience_id: args.origin_audience_id,
+        lookalike_spec: JSON.stringify({ type: 'similarity', ratio: args.ratio || 0.01, country: args.country })
+      });
+      return { success: true, audience_id: r.id };
+    }
+
+    case 'upload_ad_image': {
+      const r = await meta(`/act_${args.account_id}/adimages`, 'POST', { url: args.image_url, name: args.name || 'image' });
       const first = Object.values(r.images || {})[0];
       return { success: true, hash: first?.hash, url: first?.url };
     }
 
     case 'upload_ad_video': {
-      const r = await meta(`/act_${args.account_id}/advideos`, 'POST', {
-        file_url: args.video_url, title: args.title || 'uploaded_video'
-      });
-      return { success: true, video_id: r.id, title: args.title };
+      const r = await meta(`/act_${args.account_id}/advideos`, 'POST', { file_url: args.video_url, title: args.title || 'video' });
+      return { success: true, video_id: r.id };
     }
 
     default:
@@ -755,11 +1153,11 @@ async function runTool(name, args) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SERVEUR MCP
+// MCP SERVER
 // ─────────────────────────────────────────────────────────────────────────────
 function createMCPServer() {
   const server = new Server(
-    { name: 'dose-meta-mcp', version: '6.0.0' },
+    { name: 'dose-meta-mcp', version: '7.0.0' },
     { capabilities: { tools: {} } }
   );
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
@@ -777,7 +1175,7 @@ function createMCPServer() {
 }
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', server: 'dose-meta-mcp', version: '6.0.0', tools: TOOLS.length, meta_token: !!META_TOKEN });
+  res.json({ status: 'ok', server: 'dose-meta-mcp', version: '7.0.0', tools: TOOLS.length, meta_token: !!META_TOKEN });
 });
 
 app.all('/mcp', async (req, res) => {
@@ -788,13 +1186,12 @@ app.all('/mcp', async (req, res) => {
     await transport.handleRequest(req, res, req.body);
     res.on('close', () => server.close());
   } catch (err) {
-    console.error('MCP error:', err);
     if (!res.headersSent) res.status(500).json({ error: err.message });
   }
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Dose Meta MCP v6.0 — ${TOOLS.length} outils — port ${PORT}`);
+  console.log(`Dose Meta MCP v7.0 — ${TOOLS.length} outils — port ${PORT}`);
   console.log(`Token: ${META_TOKEN ? 'OK' : 'MANQUANT'}`);
 });
